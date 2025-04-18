@@ -23,16 +23,9 @@ cd LipstickMatcher
 npm install
 
 Start the development server:
-
-bash
-Copy
-Edit
 npm run dev
 
 🧪 Build & Preview
-bash
-Copy
-Edit
 npm run build       # build production version
 npm run preview     # preview the production build
 
