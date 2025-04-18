@@ -157,16 +157,20 @@
 		<ul>
             {#each suggestedShades as shade}
             <li>
-                <a 
-                href={shadeColors[shade]?.link} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="shade-link" 
+                <a
+                href={shadeColors[shade]?.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="shade-link"
                 on:click={() => handleShadeClick(shade)}
             >
-                    <span class="swatch" style="background-color: {shadeColors[shade]?.hex ?? '#ccc'}"></span>
-                    {shade}
-                </a>
+                <span
+                    class="swatch"
+                    style="background-color: {shadeColors[shade]?.hex ?? '#ccc'}"
+                ></span>
+                <span class="shade-name">{shade}</span>
+                <span class="link-indicator">→🛒</span>
+            </a>
             </li>
         {/each}
         
@@ -311,6 +315,32 @@ img {
 	margin: 0.3rem 0;
 	text-transform: capitalize;
 	color: #4e342e;
+}
+.shade-link {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background-color: #ffeef0;
+	padding: 0.6rem 1rem;
+	border-radius: 6px;
+	margin-bottom: 0.5rem;
+	color: #4e342e;
+	text-decoration: none;
+	transition: background-color 0.2s ease;
+}
+
+.shade-link:hover {
+	background-color: #fcd4da;
+}
+
+.shade-name {
+	font-weight: 500;
+}
+
+.link-indicator {
+	font-size: 1.1rem;
+	color: #d81b60;
+	margin-left: 0.5rem;
 }
 
 .color-dot,
