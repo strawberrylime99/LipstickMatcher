@@ -7,7 +7,9 @@
         getUndertone
 	} from '$lib/colorUtils';
 	import { shadeColors } from '$lib/shadeColors';
+    import { injectAnalytics } from '@vercel/analytics/sveltekit'
 
+    injectAnalytics();
 	let imageUrl: string | null = null;
 	let imageElement: HTMLImageElement | null = null;
 	let faceapi: typeof import('face-api.js') | null = null;

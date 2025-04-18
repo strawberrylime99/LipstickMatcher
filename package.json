@@ -28,6 +28,7 @@
 		"vite": "^6.2.5"
 	},
 	"dependencies": {
+		"@vercel/analytics": "^1.5.0",
 		"face-api.js": "^0.22.2"
 	}
 }
