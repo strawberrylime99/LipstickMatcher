@@ -7,9 +7,14 @@
         getUndertone
 	} from '$lib/colorUtils';
 	import { shadeColors } from '$lib/shadeColors';
-    import { injectAnalytics } from '@vercel/analytics/sveltekit'
+    import { injectAnalytics, track } from '@vercel/analytics/sveltekit'
+    import { goto } from '$app/navigation';
 
     injectAnalytics();
+    function handleShadeClick(shade: string) {
+	track('shade_click', { shade });
+}
+
 	let imageUrl: string | null = null;
 	let imageElement: HTMLImageElement | null = null;
 	let faceapi: typeof import('face-api.js') | null = null;
@@ -102,6 +107,21 @@
 <header class="logo-header">
 	<img src="/logo.png" alt="Lipstick Matcher logo" class="logo" />
 </header>
+<nav class="nav-bar">
+	<button on:click={() => goto('/')}>💄 Lipstick Matcher</button>
+	<button on:click={() => goto('/how-its-matched')}>🧠 How It's Matched</button>
+</nav>
+
+<div class="upload-note">
+	<p><strong>📸 Tips for Best Results:</strong></p>
+	<ul>
+		<li>Use natural lighting (daylight is best)</li>
+		<li>Avoid harsh shadows or very dark rooms</li>
+		<li>No flash – it can distort skintone</li>
+		<li>Face the camera straight on</li>
+		<li>Make sure cheeks are visible</li>
+	</ul>
+</div>
 
 
 <label class="upload-label">
@@ -137,7 +157,13 @@
 		<ul>
             {#each suggestedShades as shade}
             <li>
-                <a href={shadeColors[shade]?.link} target="_blank" rel="noopener noreferrer" class="shade-link">
+                <a 
+                href={shadeColors[shade]?.link} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                class="shade-link" 
+                on:click={() => handleShadeClick(shade)}
+            >
                     <span class="swatch" style="background-color: {shadeColors[shade]?.hex ?? '#ccc'}"></span>
                     {shade}
                 </a>
@@ -155,6 +181,30 @@
 	padding: 0;
 	font-family: 'Poppins', sans-serif;
 }
+.nav-bar {
+	display: flex;
+	justify-content: center;
+	gap: 1rem;
+	margin-bottom: 2rem;
+}
+
+.nav-bar button {
+	background-color: #ffe0e0;
+	border: none;
+	padding: 0.5rem 1rem;
+	border-radius: 5px;
+	cursor: pointer;
+	font-size: 1rem;
+	font-weight: 500;
+	font-family: 'Poppins', sans-serif;
+	color: #4e342e;
+	transition: background-color 0.2s ease;
+}
+
+.nav-bar button:hover {
+	background-color: #f8bbd0;
+}
+
 
 /* Upload button styling */
 .upload-label {
@@ -169,6 +219,26 @@
 	text-align: center;
 	font-weight: bold;
 	transition: background-color 0.2s ease;
+}
+.upload-note {
+	max-width: 400px;
+	margin: 1.5rem auto 1rem;
+	background: #fff8f6;
+	border: 1px solid #f8bbd0;
+	border-radius: 6px;
+	padding: 1rem;
+	font-size: 0.95rem;
+	color: #4e342e;
+	box-shadow: 0 2px 8px rgba(244, 143, 177, 0.1);
+}
+
+.upload-note ul {
+	margin: 0.5rem 0 0;
+	padding-left: 1.2rem;
+}
+
+.upload-note li {
+	margin-bottom: 0.3rem;
 }
 
 .shade-section {

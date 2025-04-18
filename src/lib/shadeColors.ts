@@ -159,10 +159,6 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 		hex: '#4f0210',
 		link: 'https://www.amazon.com/HHLTOH-Lipstick-Lasting-Waterproof-Lipliners/dp/B0DLL9R8DK/ref=sr_1_2_sspa?crid=U9E6F4QQETTU&dib=eyJ2IjoiMSJ9.bAwGoNSrAGXhHg249gDk1yq2VbafvKc2zqbOFXzbKZwRZbJoAFeBDRLXiFdtFTPxtB_uyNmKPwx3xq2QGFXMimVK-ZCUs7EU5nUVCbj-6wNSr23Gbif-s2POqn3iVo9Y4JYwffBT3T_AslDP7wn-geqsfyTQRAq392e9ouMqJG1HF-CBcspTLm1qD0l7YVOevje89vsIfS3dC2OzcN3DkVSpVqrmDaRLCeDrqBfRqIHHO6_HpMgsN-BHNA2UNV15KgDAX0SUGNa9bNX55YMChYW3a35pGWKITfllVwKlR7k.SqEK31BiKysu8wQaVzBkoOPYt4MFcB9JteuBvVc3YvA&dib_tag=se&keywords=deep+wine+lipstick&qid=1744951013&sprefix=deep+wine+%2Caps%2C168&sr=8-2-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1'
 	},
-	'matte black': {
-		hex: '#000000',
-		link: 'https://www.amazon.com/MAKI-YIKA-Lipsticks-Transferproof-Cruelty-Free/dp/B0B1M6L7Z1/ref=sr_1_1_sspa?crid=1XLFVHB0U722D&dib=eyJ2IjoiMSJ9.7uzBNj90qdt07K6ZT8DUxYeWbRI6OAl_V6ot5s47E7pJnzRPMKomBYU6VHfdVnt7T0NzhAtw4TpslWeeFEhjO764nUeXZmUyVAIs86MTn9PB_A47_FiSvcniGV9HbwuNDi62xqIrCWRfXmzIixr4HqC5iLlxv9y_HL9oD-G_98SJUVBSu-WCufsfcx1ceLbatCpXpZ1Gx3sZUi45j9OQhYGD9LwwrN_Z0aezx7eOwlXcKIueQxZbWpQK4678fnmmm2LwOsVmWx5BwaY0B1x_Fh6S_mZGcM00itL0_SWVWVQ.E9aD9DAYm5gshJ7FCaHkMnnOL4x4oc-SgAzRbZuTx54&dib_tag=se&keywords=matte+black+lipstick&qid=1744950995&sprefix=matte+black+lipstick%2Caps%2C96&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1'
-	},
     'fig': {
 	hex: '#705160',
 	link: 'https://www.amazon.com/Smashbox-Legendary-Prime-Lipstick-Finish/dp/B092BPSZF7/ref=sr_1_9?crid=1KOZY2U0ZS8HX&dib=eyJ2IjoiMSJ9.LgG2aaZ3jrl97Hf4XghwOaeSDbfnje7GxuLQJ60uFscHIka6zkDrdYqwbCmPMm0iTC-031Dn7zinfyOiWdDPNQUnfOuyX3ylt1LeVRGjn2sMyeH4Ou3JIBHfhYTAiXNNpCzykd44OEGNdMy9QyBouUk1QyX-KqJQkyvutccajsxkYzrdD00Rtu3F0C4dZDGr17Hql1hw95KRv9rvpo_fT3QlNqN8Dod1BjAtX-Rhw8u4Fgeabnbz5gjtT8D9ectiAhQN5BUEESnaGmNdjGTeNHMQbfVc-58zA3nPSIgIg_g.-kaYXT3f3rWC40ws1IymgRaQlHzROa0Gln16GJFJXag&dib_tag=se&keywords=fig%2Bcolor%2Blipstick&qid=1744951784&refinements=p_36%3A1700-&rnid=386662011&sprefix=fig%2Bcolor%2Blipstick%2Caps%2C80&sr=8-9&th=1'

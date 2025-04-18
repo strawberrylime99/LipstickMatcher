@@ -95,7 +95,7 @@ export function matchLipstickShadeByTone(r: number, g: number, b: number): strin
 		'tan neutral': ['aubergine', 'black cherry', 'sable'],
 		'tan warm': ['espresso', 'dark chocolate', 'mahogany'],
 		'deep cool': ['oxblood', 'moody plum', 'cool burgundy'],
-		'deep neutral': ['deep wine', 'matte black', 'fig']
+		'deep neutral': ['deep wine', 'cool nude', 'fig']
 	};
 
 	return toneMap[toneName] ?? ['clear gloss', 'rosebud', 'warm nude'];
