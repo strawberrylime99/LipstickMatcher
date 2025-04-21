@@ -12,9 +12,12 @@
 </nav>
 
 <svelte:head>
-    <title>How Lipstick Matching Works | AI Skin Tone & Undertone Detection</title>
-    <meta name="description" content="Learn how our AI-powered lipstick matcher detects your skin tone and undertone from a photo to recommend the best lipstick shades.">
+  <title>How Lipstick Matcher Works | Skin Tone & Undertone Detection</title>
+  <meta name="description" content="Learn how Lipstick Matcher uses face detection and color science to recommend lipstick shades tailored to you." />
+  <meta property="og:title" content="How Lipstick Matcher Works" />
+  <meta property="og:description" content="See the tech behind our AI lipstick matcher and how it finds your best shade based on your skin tone." />
 </svelte:head>
+
 
 <div class="content">
     <h1>💡 How Lipstick Matching Works</h1>

@@ -12,8 +12,8 @@
 
     injectAnalytics();
     function handleShadeClick(shade: string) {
-	track('shade_click', { shade });
-}
+		track('shade_click', { shade });
+	}
 
 	let imageUrl: string | null = null;
 	let imageElement: HTMLImageElement | null = null;
@@ -104,6 +104,18 @@
 	}
 </script>
 
+<svelte:head>
+	<title>AI Lipstick Matcher – Find Your Best Shade with a Selfie</title>
+	<meta name="description" content="Use AI to find your perfect lipstick shade. Upload a selfie and get personalized matches based on your skin tone and undertone." />
+	<meta name="keywords" content="lipstick matcher, AI beauty tool, find lipstick shade, skin tone detector, undertone, SvelteKit beauty app, virtual makeup match" />
+	<meta name="author" content="Lipstick Matcher" />
+	<meta property="og:title" content="AI Lipstick Matcher – Find Your Best Shade with a Selfie" />
+	<meta property="og:description" content="Upload your photo and get smart lipstick shade suggestions powered by AI. Fast, private, and free." />
+	<meta property="og:image" content="/logo.png" />
+	<meta property="og:url" content="https://lipstickmatcher.com" />
+	<meta name="twitter:card" content="summary_large_image" />
+</svelte:head>
+
 <header class="logo-header">
 	<img src="/logo.png" alt="Lipstick Matcher logo" class="logo" />
 </header>
@@ -123,11 +135,29 @@
 	</ul>
 </div>
 
-
 <label class="upload-label">
 	Upload Selfie
 	<input type="file" accept="image/*" on:change={handleUpload} />
 </label>
+
+<section class="recent-articles">
+	<h2>📰 Recent Blog Articles</h2>
+	<ul>
+	  <li>
+		<a href="/blog/2025-spring-lipstick-trends">
+		  Spring 2025 Lipstick Trends
+		  <span class="date">April 20, 2025</span>
+		</a>
+	  </li>
+	  <li>
+		<a href="/blog/matte-vs-glossy-lipstick">
+		  Choosing between a Matte or Glossy Lip
+		  <span class="date">April 15, 2025</span>
+		</a>
+	  </li>
+	</ul>
+  </section>
+  
 
 {#if imageUrl}
 	<div class="preview">
@@ -149,7 +179,6 @@
 		<p><strong>Detected tone:</strong> {detectedTone}</p>
 	</div>
 {/if}
-
 
 {#if suggestedShades.length > 0}
 	<div class="shade-section">
@@ -173,14 +202,13 @@
             </a>
             </li>
         {/each}
-        
 		</ul>
 	</div>
 {/if}
 
 <style>
 :global(body) {
-	background-color: #fff3e0; /* Peach Cream */
+	background-color: #fff3e0;
 	margin: 0;
 	padding: 0;
 	font-family: 'Poppins', sans-serif;
@@ -191,7 +219,6 @@
 	gap: 1rem;
 	margin-bottom: 2rem;
 }
-
 .nav-bar button {
 	background-color: #ffe0e0;
 	border: none;
@@ -204,25 +231,27 @@
 	color: #4e342e;
 	transition: background-color 0.2s ease;
 }
-
 .nav-bar button:hover {
 	background-color: #f8bbd0;
 }
-
-
-/* Upload button styling */
 .upload-label {
 	display: block;
 	width: fit-content;
 	margin: 0 auto 1.5rem;
 	padding: 0.5rem 1rem;
-	background-color: #f06292; /* Coral Pink */
+	background-color: #f06292;
 	color: white;
 	border-radius: 4px;
 	cursor: pointer;
 	text-align: center;
 	font-weight: bold;
 	transition: background-color 0.2s ease;
+}
+.upload-label:hover {
+	background-color: #e04878;
+}
+.upload-label input[type="file"] {
+	display: none;
 }
 .upload-note {
 	max-width: 400px;
@@ -235,78 +264,45 @@
 	color: #4e342e;
 	box-shadow: 0 2px 8px rgba(244, 143, 177, 0.1);
 }
-
 .upload-note ul {
 	margin: 0.5rem 0 0;
 	padding-left: 1.2rem;
 }
-
 .upload-note li {
 	margin-bottom: 0.3rem;
 }
-
-.shade-section {
-	margin: 2rem auto;
-	max-width: 400px;
-	padding: 1rem;
-	border-radius: 6px;
-	background: #fcfcfc;
-	box-shadow: 0 0 4px rgba(141, 110, 99, 0.15);
-	font-family: 'Poppins', sans-serif;
-}
-
-.upload-label:hover {
-	background-color: #e04878;
-}
-
-.upload-label input[type="file"] {
-	display: none;
-}
-
-
-input[type="file"] {
-	display: block;
-	margin: 0 auto 1.5rem;
-	font-family: 'Poppins', sans-serif;
-}
-
 .preview {
 	max-width: 400px;
 	margin: 0 auto;
 	border-radius: 8px;
-	box-shadow: 0 2px 10px rgba(141, 110, 99, 0.1); /* Mocha Brown tint */
+	box-shadow: 0 2px 10px rgba(141, 110, 99, 0.1);
 	overflow: hidden;
-	background: #fff3e0; /* Peach Cream */
+	background: #fff3e0;
 }
-
 img {
 	display: block;
 	width: 100%;
 	height: auto;
 }
-
 .shade-section {
 	margin: 2rem auto;
 	max-width: 400px;
 	padding: 1rem;
 	border-radius: 6px;
-	background: 	rgb(236, 201, 195);
-	box-shadow: 0 0 440px rgba(197, 63, 14, 0.15); /* Soft Mocha shadow */
+	background: rgb(236, 201, 195);
+	box-shadow: 0 0 440px rgba(197, 63, 14, 0.15);
 	font-family: 'Poppins', sans-serif;
 }
-
 .shade-section p {
 	text-align: center;
 	margin-bottom: 0.5rem;
-	color: #4e342e; /* Deep Coffee */
+	color: #4e342e;
 }
-
 .shade-section ul {
 	list-style: none;
 	padding: 0;
 	margin: 1rem 0;
 }
-
 .shade-section li {
 	display: flex;
 	align-items: center;
@@ -328,55 +324,83 @@ img {
 	text-decoration: none;
 	transition: background-color 0.2s ease;
 }
-
 .shade-link:hover {
 	background-color: #fcd4da;
 }
-
 .shade-name {
 	font-weight: 500;
 }
-
 .link-indicator {
 	font-size: 1.1rem;
 	color: #d81b60;
 	margin-left: 0.5rem;
 }
-
 .color-dot,
 .swatch {
 	width: 1.2rem;
 	height: 1.2rem;
 	border-radius: 50%;
-	border: 1px solid #d7ccc8; /* Neutral taupe */
+	border: 1px solid #d7ccc8;
 	display: inline-block;
 }
-
 .logo-header {
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	margin: 2rem 0 1rem;
 }
-
 .logo {
 	max-width: 200px;
 	height: auto;
 }
 
-.shade-link {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	color: #4e342e;
-	text-decoration: none;
-	transition: color 0.2s ease;
-	font-weight: 500;
+.recent-articles {
+  margin: 3rem auto;
+  max-width: 400px;
+  padding: 1.5rem;
+  background: #ffe0e0;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(244, 143, 177, 0.1);
 }
 
-.shade-link:hover {
-	color: #d81b60; /* coral pink accent */
+.recent-articles h2 {
+  color: #c2185b;
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+  margin-bottom: 1rem;
 }
 
+.recent-articles ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recent-articles li {
+  margin-bottom: 1.2rem;
+}
+
+.recent-articles a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-decoration: none;
+  font-family: 'Poppins', sans-serif;
+  color: #4e342e;
+  font-size: 1rem;
+  background: #f1c2c7;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.recent-articles a:hover {
+  background-color: #f0a4b0;
+}
+
+.recent-articles .date {
+  font-size: 0.875rem;
+  color: #8d6e63;
+}
 
 </style>
