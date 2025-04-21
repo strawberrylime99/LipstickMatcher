@@ -139,24 +139,6 @@
 	Upload Selfie
 	<input type="file" accept="image/*" on:change={handleUpload} />
 </label>
-
-<section class="recent-articles">
-	<h2>📰 Recent Blog Articles</h2>
-	<ul>
-	  <li>
-		<a href="/blog/2025-spring-lipstick-trends">
-		  Spring 2025 Lipstick Trends
-		  <span class="date">April 20, 2025</span>
-		</a>
-	  </li>
-	  <li>
-		<a href="/blog/matte-vs-glossy-lipstick">
-		  Choosing between a Matte or Glossy Lip
-		  <span class="date">April 15, 2025</span>
-		</a>
-	  </li>
-	</ul>
-  </section>
   
 
 {#if imageUrl}
@@ -205,7 +187,23 @@
 		</ul>
 	</div>
 {/if}
-
+<section class="recent-articles">
+	<h2>📰 Recent Blog Articles</h2>
+	<ul>
+	  <li>
+		<a href="/blog/2025-spring-lipstick-trends">
+		  Spring 2025 Lipstick Trends
+		  <span class="date">April 20, 2025</span>
+		</a>
+	  </li>
+	  <li>
+		<a href="/blog/matte-vs-glossy-lipstick">
+		  Choosing between a Matte or Glossy Lip
+		  <span class="date">April 15, 2025</span>
+		</a>
+	  </li>
+	</ul>
+  </section>
 <style>
 :global(body) {
 	background-color: #fff3e0;
