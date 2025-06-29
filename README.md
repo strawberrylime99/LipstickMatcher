@@ -1,6 +1,7 @@
 # 💄 Lipstick Matcher
 
 A lightweight Svelte web app that matches lipstick shades based on your skin tone and undertone, using a photo upload.
+Currently Live at: www.LipstickMatcher.com
 
 <p align="center">
   <img src="static/logo.png" alt="Lipstick Matcher logo" width="200"/>
