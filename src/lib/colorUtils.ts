@@ -137,26 +137,71 @@ export function getBestMatchedShades(r: number, g: number, b: number): string[] 
 	}
 }
 
+const shadeDescriptions: Record<string, string> = {
+  'ice pink': 'A frosty touch that highlights cool undertones in fair skin.',
+  'frosty rose': 'Delicate and icy—perfect for a fair cool tone.',
+  'cloudberry': 'Soft and dreamy for those with light, cool elegance.',
+  'rosebud': 'A versatile pink that flatters cool tones across the spectrum.',
+  'shell pink': 'Subtle and sweet for fair neutral skin.',
+  'clear gloss': 'A universal finish that suits every undertone.',
+  'cool nude': 'Balanced and understated, perfect for neutral complexions.',
+  'warm peach': 'Glows beautifully against warm undertones.',
+  'soft bronze': 'Adds sun-kissed warmth to fair or light warm skin.',
+  'sunset coral': 'Brightens up warm skin with a peachy pop.',
+  'terracotta': 'Rich and earthy—complements warm or olive undertones.',
+  'plum': 'Deep and striking for cool or medium tones.',
+  'wine': 'A classic choice that enhances medium cool elegance.',
+  'burnt sienna': 'Adds depth and warmth to medium skin.',
+  'rich spice': 'Vibrant and bold, perfect for warm medium tones.',
+  'cherrywood': 'Deep red with warm depth—great for autumn tones.',
+  'moody plum': 'Dark and dramatic—stands out on deep cool complexions.',
+  'oxblood': 'Bold and chic for cool, deep tones.',
+  'caramel blush': 'Sweet and warm, ideal for golden undertones.',
+  'universal red': 'Timeless and flattering on all tones.',
+  'fig': 'Earthy and rich—pairs well with deep neutral skin.',
+  'dark nude': 'Neutral with a hint of depth, ideal for understated looks.',
+};
+
+export function getShadeDescriptions(shades: string[]): string[] {
+  return shades.map((shade) => shadeDescriptions[shade] || 'A flattering choice for your skin tone.');
+}
 
 
 export function getToneNameFromRGB(r: number, g: number, b: number): string {
 	const [, , l] = rgbToHsl(r, g, b);
-	const toneIndex = Math.floor((l / 100) * 20);
-	return `Tone ${toneIndex + 1}`;
+
+	// Invert the lightness scale so lower `l` means deeper tone
+	const invertedL = 100 - l;
+	const toneIndex = Math.floor((invertedL / 100) * 20);
+
+	return toneNameMap[toneIndex + 1] ?? `Tone ${toneIndex + 1}`;
 }
+
 
 export function getUndertone(r: number, g: number, b: number): 'cool' | 'warm' | 'neutral' {
 	const [h, s, l] = rgbToHsl(r, g, b);
 
-	// Cool: more pink/purple/blue
-	if (h >= 180 && h <= 300) return 'cool';
+	if (s < 20) {
+		return 'neutral';
+	}
 
-	// Warm: yellow, orange, olive ranges
-	if ((h >= 30 && h <= 90) || (r > g && g > b)) return 'warm';
+	// Special case for very fair skin with subtle pink/blue
+	if (l > 85 && (h < 25 || h > 330)) {
+		return 'cool';
+	}
+	if (l > 85 && r - b < 20 && r - g < 20) {
+	return 'cool';
+}
 
-	// Low saturation = hard to determine (maybe neutral)
-	if (s < 15) return 'neutral';
 
-	// Fallback
+	// Hue-based classification
+	if ((h >= 0 && h <= 50) || (h >= 330 && h <= 360)) {
+		return 'warm';
+	}
+
+	if (h >= 180 && h <= 300) {
+		return 'cool';
+	}
+
 	return 'neutral';
 }

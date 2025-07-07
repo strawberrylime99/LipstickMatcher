@@ -95,7 +95,7 @@
 				console.log(`Sampled pixel: rgb(${r}, ${g}, ${b})`);
 
 				sampledHex = rgbToHex(r, g, b);
-				detectedTone = getToneNameFromRGB(r, g, b);
+				detectedTone = getToneNameFromRGB(r, g, b).split(' ')[0];
 				suggestedShades = getBestMatchedShades(r, g, b).slice(0, 3);
 				detectedUndertone = getUndertone(r, g, b);
 			};
@@ -156,11 +156,17 @@
 	</div>
 {/if}
 
-{#if detectedTone}
+{#if detectedTone || detectedUndertone}
 	<div class="shade-section">
-		<p><strong>Detected tone:</strong> {detectedTone}</p>
+		{#if detectedTone}
+			<p><strong>Detected tone:</strong> {detectedTone}</p>
+		{/if}
+		{#if detectedUndertone}
+			<p><strong>Detected undertone:</strong> {detectedUndertone}</p>
+		{/if}
 	</div>
 {/if}
+
 
 {#if suggestedShades.length > 0}
 	<div class="shade-section">
