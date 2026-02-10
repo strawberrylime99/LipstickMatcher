@@ -1,5 +1,4 @@
 ---
-layout: blog
 title: "Spring 2025 Lipstick Trends"
 description: "The hottest lipstick colors and trends for Spring 2025, from petal pinks to AI-powered shade matching."
 date: 2025-04-20

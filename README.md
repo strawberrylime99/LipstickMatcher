@@ -39,3 +39,19 @@ Skin undertone logic
 📸 Models Used
 face-api.js for face detection
 Custom logic for skintone extraction from cheeks
+
+## Content Automation (PR-Only)
+
+This repo includes a weekly content automation workflow that generates a blog draft and opens a GitHub PR.
+You only need to review and merge from your phone.
+
+- Workflow: `.github/workflows/content-draft-pr.yml`
+- Topic queue: `content/automation-topics.json`
+- Generator: `scripts/generate-content-post.mjs`
+
+### Local commands
+
+```bash
+npm run content:dry-run
+npm run content:generate
+```

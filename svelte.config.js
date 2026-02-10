@@ -8,7 +8,7 @@ const config = {
 		mdsvex({
 			extensions: ['.md'],
 			layout: {
-				blog: './src/routes/blog/_postLayout.svelte'
+				blog: path.resolve('./src/routes/blog/_postLayout.svelte')
 			  }
 			  
 		})

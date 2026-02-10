@@ -74,11 +74,16 @@ const toneNameMap: Record<number, string> = {
 	20: 'deep cool'
 };
 
+function getToneIndexFromRGB(r: number, g: number, b: number): number {
+	const [, , l] = rgbToHsl(r, g, b);
+	const invertedL = 100 - l;
+	const toneIndex = Math.floor((invertedL / 100) * 20);
+	return Math.max(0, Math.min(19, toneIndex));
+}
 
 
 export function matchLipstickShadeByTone(r: number, g: number, b: number): string[] {
-	const [, , l] = rgbToHsl(r, g, b);
-	const toneIndex = Math.floor((l / 100) * 20);
+	const toneIndex = getToneIndexFromRGB(r, g, b);
 	const toneName = toneNameMap[toneIndex + 1];
 
 	const toneMap: Record<string, string[]> = {
@@ -168,12 +173,7 @@ export function getShadeDescriptions(shades: string[]): string[] {
 
 
 export function getToneNameFromRGB(r: number, g: number, b: number): string {
-	const [, , l] = rgbToHsl(r, g, b);
-
-	// Invert the lightness scale so lower `l` means deeper tone
-	const invertedL = 100 - l;
-	const toneIndex = Math.floor((invertedL / 100) * 20);
-
+	const toneIndex = getToneIndexFromRGB(r, g, b);
 	return toneNameMap[toneIndex + 1] ?? `Tone ${toneIndex + 1}`;
 }
 

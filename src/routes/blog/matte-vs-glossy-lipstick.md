@@ -1,5 +1,4 @@
 ---
-layout: blog
 title: "Matte vs. Glossy: Which Lipstick Finish Is Right for You?"
 description: "Explore the pros and cons of matte and glossy lipstick finishes and learn how to pick the perfect one for your look."
 date: 2025-04-21
