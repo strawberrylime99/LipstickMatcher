@@ -410,7 +410,10 @@
 <main class="page">
 	<header class="hero">
 		<div class="hero-topbar">
-			<img src="/logo.png" alt="Lipstick Matcher" class="logo" />
+			<a href="/" class="brand">
+				<img src="/favicon.png" alt="Lipstick Matcher icon" class="brand-icon" />
+				<span>Lipstick Matcher</span>
+			</a>
 			<nav class="nav-links" aria-label="Main navigation">
 				<a href="/" aria-current="page">Matcher</a>
 				<a href="/how-its-matched">How It Works</a>
@@ -427,7 +430,7 @@
 					no guesswork.
 				</p>
 				<div class="hero-actions">
-					<button class="cta-primary" on:click={scrollToUploader}>Upload a selfie</button>
+					<button class="cta-primary" on:click={scrollToUploader}>Get my 3 shade matches</button>
 					<button class="cta-secondary" on:click={() => goto('/how-its-matched')}>See how it works</button>
 				</div>
 			</div>
@@ -494,7 +497,7 @@
 		</div>
 
 		<div class="action-row">
-			<button class="cta-primary" on:click={openFileDialog} disabled={isModelLoading}>Choose selfie</button>
+			<button class="cta-primary" on:click={openFileDialog} disabled={isModelLoading}>Get my 3 shade matches</button>
 			<button class="cta-secondary" on:click={useSamplePhoto}>Try a sample photo</button>
 		</div>
 
@@ -580,16 +583,22 @@
 								>
 									<span class="swatch" style={`background-color: ${shadeColors[shade]?.hex ?? '#ccc'}`}></span>
 									<span class="shade-name">{shade}</span>
+									{#if index === 0}
+										<span class="best-badge">Best match</span>
+									{/if}
 									<span class="buy-label">View product <span class="paid-link">(paid link)</span></span>
 								</a>
 							</li>
 						{/each}
 					</ul>
+					<p class="open-note">Product links open in a new tab.</p>
 					<p class="amazon-disclosure">As an Amazon Associate I earn from qualifying purchases.</p>
 				</div>
 			{/if}
 		</section>
 	{/if}
+
+	<button class="mobile-sticky-cta" on:click={scrollToUploader}>Get my 3 shade matches</button>
 
 	<section class="why-trust" aria-labelledby="why-trust-title">
 		<h2 id="why-trust-title">What makes the results feel polished</h2>
@@ -692,9 +701,22 @@
 		margin-top: 0.9rem;
 	}
 
-	.logo {
-		width: 162px;
-		height: auto;
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		text-decoration: none;
+		color: #7a2f4d;
+		font-weight: 800;
+		font-size: 1.55rem;
+		font-family: 'Cormorant Garamond', 'Georgia', serif;
+	}
+
+	.brand-icon {
+		width: 1.9rem;
+		height: 1.9rem;
+		border-radius: 0;
+		display: block;
 	}
 
 	.nav-links {
@@ -1141,6 +1163,16 @@
 		flex: 1;
 	}
 
+	.best-badge {
+		font-size: 0.68rem;
+		font-weight: 800;
+		padding: 0.2rem 0.42rem;
+		border-radius: 999px;
+		background: #fde9f1;
+		color: #a03d67;
+		white-space: nowrap;
+	}
+
 	.buy-label {
 		font-size: 0.8rem;
 		font-weight: 700;
@@ -1156,6 +1188,16 @@
 		margin: 0.6rem 0 0;
 		font-size: 0.82rem;
 		color: #816572;
+	}
+
+	.open-note {
+		margin: 0.55rem 0 0;
+		font-size: 0.78rem;
+		color: #8b6f7d;
+	}
+
+	.mobile-sticky-cta {
+		display: none;
 	}
 
 	.trust-grid {
@@ -1302,6 +1344,25 @@
 		.article-list a {
 			flex-direction: column;
 			align-items: flex-start;
+		}
+
+		.mobile-sticky-cta {
+			display: inline-flex;
+			position: fixed;
+			right: 0.75rem;
+			left: 0.75rem;
+			bottom: 0.75rem;
+			justify-content: center;
+			border: none;
+			border-radius: 999px;
+			padding: 0.82rem 1rem;
+			font-weight: 800;
+			font-size: 0.95rem;
+			z-index: 40;
+			cursor: pointer;
+			color: #fff;
+			background: linear-gradient(120deg, #f7a8b8 0%, #e77aa6 100%);
+			box-shadow: 0 14px 28px rgba(171, 71, 111, 0.28);
 		}
 	}
 </style>
