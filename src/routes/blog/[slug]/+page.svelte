@@ -86,6 +86,10 @@
 			</ul>
 		</section>
 	{/if}
+
+	<p class="affiliate-note">
+		Disclosure: This site may use paid links. As an Amazon Associate I earn from qualifying purchases.
+	</p>
 </article>
 
 <style>
@@ -198,5 +202,11 @@
 		font-size: 0.8rem;
 		font-weight: 600;
 		white-space: nowrap;
+	}
+
+	.affiliate-note {
+		margin: 1rem 0 0;
+		font-size: 0.82rem;
+		color: #64748b;
 	}
 </style>

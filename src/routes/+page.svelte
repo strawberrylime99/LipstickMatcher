@@ -399,6 +399,7 @@
 			{#if suggestedShades.length > 0}
 				<div class="shade-list-wrap">
 					<h3>Recommended shades</h3>
+					<p class="link-disclosure">Some product links below are paid links.</p>
 					<ul class="shade-list">
 						{#each suggestedShades as shade}
 							<li>
@@ -410,11 +411,12 @@
 								>
 									<span class="swatch" style={`background-color: ${shadeColors[shade]?.hex ?? '#ccc'}`}></span>
 									<span class="shade-name">{shade}</span>
-									<span class="buy-label">View product</span>
+									<span class="buy-label">View product <span class="paid-link">(paid link)</span></span>
 								</a>
 							</li>
 						{/each}
 					</ul>
+					<p class="amazon-disclosure">As an Amazon Associate I earn from qualifying purchases.</p>
 				</div>
 			{/if}
 		</section>
@@ -771,6 +773,12 @@
 		color: #0d223d;
 	}
 
+	.link-disclosure {
+		margin: 0 0 0.65rem;
+		font-size: 0.84rem;
+		color: #52657d;
+	}
+
 	.shade-list {
 		list-style: none;
 		margin: 0;
@@ -802,6 +810,17 @@
 		font-size: 0.8rem;
 		font-weight: 700;
 		color: #2f4f78;
+	}
+
+	.paid-link {
+		font-weight: 600;
+		color: #5b6f87;
+	}
+
+	.amazon-disclosure {
+		margin: 0.6rem 0 0;
+		font-size: 0.82rem;
+		color: #52657d;
 	}
 
 	.trust-grid {
