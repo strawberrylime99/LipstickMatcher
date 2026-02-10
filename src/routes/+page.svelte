@@ -411,8 +411,7 @@
 	<header class="hero">
 		<div class="hero-topbar">
 			<a href="/" class="brand">
-				<img src="/favicon.png" alt="Lipstick Matcher icon" class="brand-icon" />
-				<span>Lipstick Matcher</span>
+				<img src="/logo.png" alt="Lipstick Matcher" class="brand-logo" />
 			</a>
 			<nav class="nav-links" aria-label="Main navigation">
 				<a href="/" aria-current="page">Matcher</a>
@@ -702,20 +701,13 @@
 	}
 
 	.brand {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
+		display: inline-block;
 		text-decoration: none;
-		color: #7a2f4d;
-		font-weight: 800;
-		font-size: 1.55rem;
-		font-family: 'Cormorant Garamond', 'Georgia', serif;
 	}
 
-	.brand-icon {
-		width: 1.9rem;
-		height: 1.9rem;
-		border-radius: 0;
+	.brand-logo {
+		width: 178px;
+		height: auto;
 		display: block;
 	}
 
