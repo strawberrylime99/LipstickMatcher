@@ -9,10 +9,13 @@
 	injectAnalytics();
 
 	type Point = { x: number; y: number };
+	type UploadSource = 'file_picker' | 'drop_zone' | 'sample_photo';
 
 	let imageUrl: string | null = null;
 	let imageElement: HTMLImageElement | null = null;
 	let faceapi: typeof import('face-api.js') | null = null;
+	let uploadInput: HTMLInputElement | null = null;
+	let uploaderSection: HTMLElement | null = null;
 
 	let sampledHex: string | null = null;
 	let suggestedShades: string[] = [];
@@ -25,12 +28,21 @@
 	let analysisError: string | null = null;
 	let analysisProgress = 0;
 	let analysisStage = 'Preparing image...';
+	let isDragActive = false;
+	let workflowStep = 0;
 	let progressInterval: ReturnType<typeof setInterval> | null = null;
+
+	const siteUrl = 'https://lipstickmatcher.com';
 	const latestPosts = [...posts]
 		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 		.slice(0, 3);
 
-	const siteUrl = 'https://lipstickmatcher.com';
+	const heroSwatches = [
+		{ name: 'Rosy Nude', hex: '#ca8e8f' },
+		{ name: 'Warm Peach', hex: '#f4a57f' },
+		{ name: 'Blue-Red', hex: '#a51d31' }
+	];
+
 	const homeStructuredData = JSON.stringify([
 		{
 			'@context': 'https://schema.org',
@@ -61,8 +73,20 @@
 		}
 	]);
 
-	function handleShadeClick(shade: string) {
-		track('shade_click', { shade });
+	function getPostCategory(post: any): string {
+		if (Array.isArray(post.tags) && post.tags.length > 0) {
+			return String(post.tags[0]);
+		}
+		return 'Guide';
+	}
+
+	function trackAffiliateClick(shade: string, position: number) {
+		track('affiliate_click', {
+			shade,
+			position,
+			placement: 'homepage_recommendations',
+			merchant: 'amazon'
+		});
 	}
 
 	function sampleMedianRgb(
@@ -127,6 +151,30 @@
 		}
 	}
 
+	function resetResults() {
+		analysisError = null;
+		sampledHex = null;
+		suggestedShades = [];
+		detectedTone = null;
+		detectedUndertone = null;
+		workflowStep = 1;
+	}
+
+	function scrollToUploader() {
+		uploaderSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	}
+
+	function openFileDialog() {
+		uploadInput?.click();
+	}
+
+	function onDropZoneKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			openFileDialog();
+		}
+	}
+
 	onMount(async () => {
 		try {
 			if (typeof window === 'undefined') return;
@@ -147,26 +195,14 @@
 		stopProgress();
 	});
 
-	async function handleUpload(event: Event) {
-		const file = (event.target as HTMLInputElement)?.files?.[0];
-		if (!file) return;
-
+	async function analyzeImage(imageDataUrl: string, source: UploadSource) {
 		isAnalyzing = true;
-		analysisError = null;
-		sampledHex = null;
-		suggestedShades = [];
-		detectedTone = null;
-		detectedUndertone = null;
+		resetResults();
 		startProgress();
+		workflowStep = 2;
+		track('upload_started', { source });
 
 		try {
-			const imageDataUrl = await new Promise<string>((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onload = (e) => resolve((e.target?.result as string) ?? '');
-				reader.onerror = () => reject(new Error('Could not read uploaded file.'));
-				reader.readAsDataURL(file);
-			});
-
 			imageUrl = imageDataUrl;
 			await tick();
 			updateProgress(30, 'Checking photo quality...');
@@ -242,8 +278,93 @@
 
 			analysisProgress = 100;
 			analysisStage = 'Done';
+			workflowStep = 3;
+			track('analysis_complete', {
+				source,
+				detectedTone,
+				detectedUndertone,
+				shadeCount: suggestedShades.length
+			});
 		} catch (error) {
 			analysisError = error instanceof Error ? error.message : 'Could not process this photo.';
+			workflowStep = imageUrl ? 1 : 0;
+			track('analysis_error', {
+				source,
+				message: analysisError
+			});
+		} finally {
+			stopProgress();
+			isAnalyzing = false;
+		}
+	}
+
+	async function handleFile(file: File, source: UploadSource) {
+		const imageDataUrl = await new Promise<string>((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = (e) => resolve((e.target?.result as string) ?? '');
+			reader.onerror = () => reject(new Error('Could not read uploaded file.'));
+			reader.readAsDataURL(file);
+		});
+
+		await analyzeImage(imageDataUrl, source);
+	}
+
+	async function handleUpload(event: Event) {
+		const file = (event.target as HTMLInputElement)?.files?.[0];
+		if (!file) return;
+		await handleFile(file, 'file_picker');
+	}
+
+	async function handleDrop(event: DragEvent) {
+		event.preventDefault();
+		isDragActive = false;
+		const file = event.dataTransfer?.files?.[0];
+		if (!file) return;
+		await handleFile(file, 'drop_zone');
+	}
+
+	function handleDragOver(event: DragEvent) {
+		event.preventDefault();
+		isDragActive = true;
+	}
+
+	function handleDragLeave() {
+		isDragActive = false;
+	}
+
+	async function useSamplePhoto() {
+		imageUrl = '/sample-selfie.svg';
+		isAnalyzing = true;
+		resetResults();
+		startProgress();
+		workflowStep = 2;
+		track('upload_started', { source: 'sample_photo' });
+
+		try {
+			updateProgress(35, 'Loading sample...');
+			await new Promise((resolve) => setTimeout(resolve, 380));
+			updateProgress(62, 'Analyzing sample tone...');
+			await new Promise((resolve) => setTimeout(resolve, 380));
+			const [r, g, b]: [number, number, number] = [216, 166, 151];
+			sampledHex = rgbToHex(r, g, b);
+			detectedTone = getToneNameFromRGB(r, g, b);
+			detectedUndertone = getUndertone(r, g, b);
+			suggestedShades = getBestMatchedShades(r, g, b).slice(0, 3);
+			analysisProgress = 100;
+			analysisStage = 'Done';
+			workflowStep = 3;
+			track('analysis_complete', {
+				source: 'sample_photo',
+				detectedTone,
+				detectedUndertone,
+				shadeCount: suggestedShades.length
+			});
+		} catch {
+			analysisError = 'Could not load the sample photo.';
+			track('analysis_error', {
+				source: 'sample_photo',
+				message: analysisError
+			});
 		} finally {
 			stopProgress();
 			isAnalyzing = false;
@@ -297,22 +418,40 @@
 			</nav>
 		</div>
 
-		<div class="hero-copy">
-			<p class="eyebrow">Personalized Beauty Matching</p>
-			<h1>Find lipstick shades that actually fit your skin tone</h1>
-			<p>
-				Upload a clear selfie and get personalized lipstick matches in under a minute. No signup,
-				no app install, and no guesswork.
-			</p>
-			<div class="trust-badges">
-				<span>Private in-browser processing</span>
-				<span>Fast AI landmark detection</span>
-				<span>Tone and undertone aware</span>
+		<div class="hero-grid">
+			<div class="hero-copy">
+				<p class="eyebrow">PERSONALIZED BEAUTY MATCHING</p>
+				<h1>Find lipstick shades that look right on you</h1>
+				<p>
+					Upload a clear selfie and get your best matches in under a minute. No signup, no app install,
+					no guesswork.
+				</p>
+				<div class="hero-actions">
+					<button class="cta-primary" on:click={scrollToUploader}>Upload a selfie</button>
+					<button class="cta-secondary" on:click={() => goto('/how-its-matched')}>See how it works</button>
+				</div>
 			</div>
+
+			<aside class="hero-preview" aria-label="Beauty preview">
+				<h2>Instant beauty preview</h2>
+				<ul>
+					{#each heroSwatches as swatch}
+						<li>
+							<span class="preview-dot" style={`background:${swatch.hex}`}></span>
+							{swatch.name}
+						</li>
+					{/each}
+				</ul>
+				<div class="mini-card">
+					<p>Your match</p>
+					<strong>3 curated picks</strong>
+					<small>Tone + undertone aware</small>
+				</div>
+			</aside>
 		</div>
 	</header>
 
-	<section class="analyzer" aria-labelledby="analyzer-title">
+	<section class="analyzer" aria-labelledby="analyzer-title" bind:this={uploaderSection} id="uploader">
 		<div class="section-head">
 			<h2 id="analyzer-title">Upload your selfie</h2>
 			<button type="button" class="secondary-link" on:click={() => goto('/how-its-matched')}>
@@ -320,11 +459,46 @@
 			</button>
 		</div>
 
+		<ol class="stepper" aria-label="Matching steps">
+			<li class:active={workflowStep >= 1}><span>1</span> Upload</li>
+			<li class:active={workflowStep >= 2}><span>2</span> Analyze</li>
+			<li class:active={workflowStep >= 3}><span>3</span> Results</li>
+		</ol>
+
 		{#if isModelLoading}
 			<p class="model-status">Loading AI model...</p>
 		{:else if modelLoadError}
 			<p class="error-message">{modelLoadError}</p>
 		{/if}
+
+		<div
+			class="drop-zone"
+			class:dragging={isDragActive}
+			on:dragover={handleDragOver}
+			on:dragleave={handleDragLeave}
+			on:drop={handleDrop}
+			on:click={openFileDialog}
+			on:keydown={onDropZoneKeydown}
+			role="button"
+			tabindex="0"
+		>
+			<p><strong>Drop your selfie here</strong> or click to browse</p>
+			<small>JPG, PNG, HEIC (best in even lighting)</small>
+			<input
+				bind:this={uploadInput}
+				type="file"
+				accept="image/*"
+				on:change={handleUpload}
+				disabled={isModelLoading}
+			/>
+		</div>
+
+		<div class="action-row">
+			<button class="cta-primary" on:click={openFileDialog} disabled={isModelLoading}>Choose selfie</button>
+			<button class="cta-secondary" on:click={useSamplePhoto}>Try a sample photo</button>
+		</div>
+
+		<p class="privacy-note">?? Private: your photo never leaves your device.</p>
 
 		<div class="upload-guidance" role="note" aria-label="Best results tips">
 			<p>For best accuracy:</p>
@@ -334,11 +508,6 @@
 				<li>Face the camera straight with both cheeks visible.</li>
 			</ul>
 		</div>
-
-		<label class="upload-label" aria-label="Upload a selfie image file">
-			Choose selfie
-			<input type="file" accept="image/*" on:change={handleUpload} disabled={isModelLoading} />
-		</label>
 
 		{#if isAnalyzing}
 			<div class="progress-wrap" role="status" aria-live="polite">
@@ -401,13 +570,13 @@
 					<h3>Recommended shades</h3>
 					<p class="link-disclosure">Some product links below are paid links.</p>
 					<ul class="shade-list">
-						{#each suggestedShades as shade}
+						{#each suggestedShades as shade, index}
 							<li>
 								<a
 									href={shadeColors[shade]?.link}
 									target="_blank"
 									rel="noopener noreferrer"
-									on:click={() => handleShadeClick(shade)}
+									on:click={() => trackAffiliateClick(shade, index + 1)}
 								>
 									<span class="swatch" style={`background-color: ${shadeColors[shade]?.hex ?? '#ccc'}`}></span>
 									<span class="shade-name">{shade}</span>
@@ -426,15 +595,15 @@
 		<h2 id="why-trust-title">What makes the results feel polished</h2>
 		<div class="trust-grid">
 			<article>
-				<h3>Clear color profile</h3>
+				<h3><span class="mini-swatch" style="background:#f3a6b6"></span>Clear color profile</h3>
 				<p>Each result includes the sampled cheek color plus tone and undertone details.</p>
 			</article>
 			<article>
-				<h3>Wearable shade picks</h3>
+				<h3><span class="mini-swatch" style="background:#f4b49f"></span>Wearable shade picks</h3>
 				<p>Recommendations are curated to be practical, not generic color labels.</p>
 			</article>
 			<article>
-				<h3>Quick comparison flow</h3>
+				<h3><span class="mini-swatch" style="background:#d2749a"></span>Quick comparison flow</h3>
 				<p>Fast processing makes it easy to test multiple photos and compare outcomes.</p>
 			</article>
 		</div>
@@ -449,7 +618,10 @@
 			{#each latestPosts as post}
 				<li>
 					<a href={`/blog/${post.slug}`}>
-						<span>{post.title}</span>
+						<div class="guide-main">
+							<span class="guide-pill"><span class="pill-dot"></span>{getPostCategory(post)}</span>
+							<span>{post.title}</span>
+						</div>
 						<small>
 							{new Date(post.date).toLocaleDateString('en-US', {
 								month: 'long',
@@ -485,23 +657,23 @@
 		margin: 0;
 		font-family: 'Manrope', 'Segoe UI', sans-serif;
 		background:
-			radial-gradient(circle at top left, #fdf2e7 0%, rgba(253, 242, 231, 0) 40%),
-			linear-gradient(160deg, #fffdfa 0%, #f6f8fc 100%);
+			radial-gradient(circle at top left, rgba(247, 168, 184, 0.12) 0%, rgba(247, 168, 184, 0) 45%),
+			linear-gradient(160deg, #fff7f9 0%, #fff5f2 100%);
 		color: #1f2937;
 	}
 
 	.page {
-		max-width: 1080px;
+		max-width: 1120px;
 		margin: 0 auto;
 		padding: 1.25rem 1rem 4rem;
 	}
 
 	.hero {
-		border: 1px solid #dde6ef;
-		background: linear-gradient(130deg, #ffffff 0%, #f4f8ff 100%);
-		border-radius: 20px;
-		padding: 1rem 1rem 1.6rem;
-		box-shadow: 0 20px 50px rgba(6, 34, 79, 0.08);
+		border: 1px solid #f0d8de;
+		background: linear-gradient(130deg, #ffffff 0%, #fff4f8 100%);
+		border-radius: 24px;
+		padding: 1rem 1rem 1.5rem;
+		box-shadow: 0 20px 50px rgba(134, 49, 83, 0.08);
 	}
 
 	.hero-topbar {
@@ -510,6 +682,14 @@
 		justify-content: space-between;
 		gap: 1rem;
 		flex-wrap: wrap;
+	}
+
+	.hero-grid {
+		display: grid;
+		grid-template-columns: 1.4fr 1fr;
+		gap: 1rem;
+		align-items: stretch;
+		margin-top: 0.9rem;
 	}
 
 	.logo {
@@ -528,61 +708,161 @@
 		padding: 0.52rem 0.9rem;
 		border-radius: 999px;
 		font-weight: 700;
-		color: #1e3a5f;
-		background: #e7effa;
-		border: 1px solid #c8d8ef;
+		color: #8e3f5f;
+		background: #fff0f5;
+		border: 1px solid #efc6d5;
 		font-size: 0.92rem;
+		transition: transform 150ms ease, box-shadow 150ms ease;
+	}
+
+	.nav-links a:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 16px rgba(164, 75, 110, 0.12);
 	}
 
 	.nav-links a[aria-current='page'] {
-		background: #1e3a5f;
+		background: #cf6f96;
 		color: #fff;
-		border-color: #1e3a5f;
-	}
-
-	.hero-copy {
-		max-width: 720px;
-		padding-top: 1.1rem;
+		border-color: #cf6f96;
 	}
 
 	.eyebrow {
 		margin: 0;
 		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.16em;
 		font-weight: 800;
-		font-size: 0.75rem;
-		color: #b5442e;
+		font-size: 0.72rem;
+		color: #a94b6e;
 	}
 
 	h1 {
-		margin: 0.4rem 0 0.8rem;
-		font-size: clamp(1.8rem, 3.8vw, 2.9rem);
+		margin: 0.45rem 0 0.8rem;
+		font-size: clamp(1.9rem, 4vw, 3rem);
 		line-height: 1.1;
-		color: #0d223d;
+		color: #61263f;
+		font-family: 'Cormorant Garamond', 'Georgia', serif;
+		font-weight: 700;
 	}
 
 	.hero-copy p {
 		margin: 0;
-		font-size: 1.04rem;
+		font-size: 1.05rem;
 		line-height: 1.6;
-		color: #334155;
+		color: #4b5563;
 	}
 
-	.trust-badges {
+	.hero-actions,
+	.action-row {
 		display: flex;
 		gap: 0.65rem;
 		flex-wrap: wrap;
 		margin-top: 1rem;
 	}
 
-	.trust-badges span {
-		font-size: 0.85rem;
-		padding: 0.4rem 0.7rem;
+	.cta-primary,
+	.cta-secondary,
+	.secondary-link {
+		font-family: 'Manrope', 'Segoe UI', sans-serif;
+	}
+
+	.cta-primary {
+		border: none;
 		border-radius: 999px;
-		background: #eef5ff;
-		border: 1px solid #d1e0f5;
-		font-weight: 600;
-		color: #26486f;
+		padding: 0.72rem 1.2rem;
+		font-weight: 800;
+		cursor: pointer;
+		color: #fff;
+		background: linear-gradient(120deg, #f7a8b8 0%, #e77aa6 100%);
+		box-shadow: 0 10px 24px rgba(192, 83, 132, 0.22);
+		transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+	}
+
+	.cta-primary:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 14px 28px rgba(192, 83, 132, 0.28);
+		filter: saturate(1.08);
+	}
+
+	.cta-primary:active {
+		transform: translateY(0);
+	}
+
+	.cta-secondary,
+	.secondary-link {
+		border: 1px solid #e7a3bf;
+		background: #fff;
+		color: #9f3f67;
+		padding: 0.66rem 1rem;
+		border-radius: 999px;
+		font-weight: 700;
+		cursor: pointer;
+		text-decoration: none;
+		transition: transform 150ms ease, box-shadow 150ms ease;
+	}
+
+	.cta-secondary:hover,
+	.secondary-link:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 16px rgba(173, 74, 113, 0.14);
+	}
+
+	.hero-preview {
+		border: 1px solid rgba(231, 122, 166, 0.22);
+		border-radius: 18px;
+		background: linear-gradient(150deg, rgba(255, 255, 255, 0.76), rgba(255, 241, 246, 0.72));
+		backdrop-filter: blur(4px);
+		padding: 0.9rem;
+	}
+
+	.hero-preview h2 {
+		margin: 0;
+		font-size: 1rem;
+		color: #7f3656;
+	}
+
+	.hero-preview ul {
+		list-style: none;
+		padding: 0;
+		margin: 0.7rem 0;
+		display: grid;
+		gap: 0.42rem;
+	}
+
+	.hero-preview li {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		font-weight: 700;
+		color: #6f3652;
+	}
+
+	.preview-dot {
+		width: 0.95rem;
+		height: 0.95rem;
+		border-radius: 50%;
+		border: 1px solid rgba(255, 255, 255, 0.9);
+		box-shadow: 0 4px 9px rgba(105, 56, 80, 0.19);
+	}
+
+	.mini-card {
+		border: 1px solid rgba(231, 122, 166, 0.3);
+		padding: 0.8rem;
+		border-radius: 14px;
+		background: #fff;
+		box-shadow: inset 0 1px 8px rgba(236, 182, 201, 0.28);
+	}
+
+	.mini-card p,
+	.mini-card small {
+		margin: 0;
+		font-size: 0.86rem;
+		color: #7b4a5e;
+	}
+
+	.mini-card strong {
+		display: block;
+		margin: 0.2rem 0;
+		color: #6f2744;
 	}
 
 	.analyzer,
@@ -593,9 +873,9 @@
 		margin-top: 1.25rem;
 		padding: 1.2rem;
 		background: #fff;
-		border: 1px solid #e3e8f0;
-		border-radius: 16px;
-		box-shadow: 0 12px 26px rgba(8, 30, 66, 0.04);
+		border: 1px solid #efd8df;
+		border-radius: 18px;
+		box-shadow: 0 12px 26px rgba(102, 41, 66, 0.05);
 	}
 
 	.section-head {
@@ -609,32 +889,99 @@
 	h2 {
 		margin: 0;
 		font-size: 1.3rem;
-		color: #0d223d;
+		color: #6e2e4d;
 	}
 
-	.secondary-link {
-		border: 1px solid #c9d6e7;
-		background: #f4f8ff;
-		color: #1f3e63;
-		text-decoration: none;
-		padding: 0.5rem 0.75rem;
-		border-radius: 10px;
+	.stepper {
+		display: flex;
+		gap: 0.8rem;
+		list-style: none;
+		padding: 0;
+		margin: 0.9rem 0 0;
+		flex-wrap: wrap;
+	}
+
+	.stepper li {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		color: #8b7b84;
 		font-weight: 700;
-		font-size: 0.88rem;
+		font-size: 0.9rem;
+	}
+
+	.stepper li span {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.3rem;
+		height: 1.3rem;
+		border-radius: 50%;
+		border: 1px solid #e8bfd0;
+		background: #fff7fa;
+		font-size: 0.76rem;
+	}
+
+	.stepper li.active {
+		color: #9b365f;
+	}
+
+	.stepper li.active span {
+		background: #e77aa6;
+		color: #fff;
+		border-color: #e77aa6;
+	}
+
+	.drop-zone {
+		margin-top: 1rem;
+		border: 1.5px dashed #e8a8c1;
+		background: linear-gradient(150deg, #fff8fb 0%, #fff3f7 100%);
+		padding: 1.2rem;
+		border-radius: 14px;
 		cursor: pointer;
+		text-align: center;
+		transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+	}
+
+	.drop-zone:hover,
+	.drop-zone.dragging {
+		transform: translateY(-2px);
+		box-shadow: 0 12px 22px rgba(184, 85, 125, 0.12);
+		border-color: #d7739e;
+	}
+
+	.drop-zone p {
+		margin: 0;
+		color: #7d3152;
+	}
+
+	.drop-zone small {
+		display: block;
+		margin-top: 0.3rem;
+		color: #8a6878;
+	}
+
+	.drop-zone input[type='file'] {
+		display: none;
+	}
+
+	.privacy-note {
+		margin: 0.65rem 0 0;
+		font-size: 0.87rem;
+		color: #826876;
 	}
 
 	.model-status {
 		margin: 0.9rem 0;
 		font-weight: 600;
-		color: #475569;
+		color: #725260;
 	}
 
 	.upload-guidance {
 		margin-top: 1rem;
 		padding: 0.9rem 1rem;
-		background: #f8fbff;
-		border: 1px solid #d7e4f4;
+		background: #fff5f9;
+		border: 1px solid #efcddd;
 		border-radius: 12px;
 	}
 
@@ -650,25 +997,7 @@
 
 	.upload-guidance li {
 		margin: 0.25rem 0;
-		color: #334155;
-	}
-
-	.upload-label {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0.72rem 1.1rem;
-		margin-top: 1rem;
-		border-radius: 11px;
-		font-weight: 800;
-		background: linear-gradient(120deg, #c14934 0%, #9f2f40 100%);
-		color: #fff;
-		cursor: pointer;
-		border: none;
-	}
-
-	.upload-label input[type='file'] {
-		display: none;
+		color: #5a5561;
 	}
 
 	.progress-wrap {
@@ -679,30 +1008,30 @@
 		margin: 0.5rem 0 0;
 		font-size: 0.9rem;
 		font-weight: 600;
-		color: #475569;
+		color: #6d5965;
 	}
 
 	.progress-bar {
 		width: 100%;
 		height: 10px;
 		border-radius: 999px;
-		background: #e7eef8;
+		background: #f4d9e3;
 		overflow: hidden;
 	}
 
 	.progress-bar span {
 		display: block;
 		height: 100%;
-		background: linear-gradient(90deg, #2d67a5 0%, #4d84bf 60%, #7aa0ca 100%);
+		background: linear-gradient(90deg, #f7a8b8 0%, #e77aa6 60%, #d46794 100%);
 		transition: width 160ms ease-out;
 	}
 
 	.error-message {
 		margin-top: 0.9rem;
 		padding: 0.75rem 0.9rem;
-		background: #fff3f1;
-		border: 1px solid #f3ccc7;
-		color: #9f2f2f;
+		background: #fff2f4;
+		border: 1px solid #efc8d5;
+		color: #9f2f4f;
 		border-radius: 10px;
 		font-weight: 600;
 	}
@@ -711,8 +1040,8 @@
 		margin-top: 1rem;
 		border-radius: 14px;
 		overflow: hidden;
-		border: 1px solid #dce5f1;
-		background: #f9fbff;
+		border: 1px solid #ecd1da;
+		background: #fff8fa;
 	}
 
 	.preview-card img {
@@ -733,8 +1062,8 @@
 	.metric-card {
 		padding: 0.9rem;
 		border-radius: 12px;
-		background: #f8fbff;
-		border: 1px solid #dce7f4;
+		background: #fff6fa;
+		border: 1px solid #efcfdd;
 	}
 
 	.metric-card h3 {
@@ -742,14 +1071,14 @@
 		font-size: 0.86rem;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
-		color: #4a6787;
+		color: #9a5876;
 	}
 
 	.metric-card p {
 		margin: 0.55rem 0 0;
 		font-weight: 700;
 		font-size: 1.06rem;
-		color: #10263f;
+		color: #6a2d48;
 		text-transform: capitalize;
 	}
 
@@ -759,7 +1088,7 @@
 		width: 1rem;
 		height: 1rem;
 		border-radius: 50%;
-		border: 1px solid #d4dee8;
+		border: 1px solid #edd9e0;
 		vertical-align: middle;
 		margin-right: 0.45rem;
 	}
@@ -770,13 +1099,13 @@
 
 	.shade-list-wrap h3 {
 		margin: 0 0 0.65rem;
-		color: #0d223d;
+		color: #6f2e4e;
 	}
 
 	.link-disclosure {
 		margin: 0 0 0.65rem;
 		font-size: 0.84rem;
-		color: #52657d;
+		color: #7d6270;
 	}
 
 	.shade-list {
@@ -795,9 +1124,15 @@
 		padding: 0.75rem 0.9rem;
 		border-radius: 11px;
 		text-decoration: none;
-		border: 1px solid #dce6f2;
+		border: 1px solid #edd1de;
 		background: #fff;
-		color: #132f4f;
+		color: #6a2d48;
+		transition: transform 140ms ease, box-shadow 140ms ease;
+	}
+
+	.shade-list a:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 10px 20px rgba(172, 78, 116, 0.11);
 	}
 
 	.shade-name {
@@ -809,43 +1144,58 @@
 	.buy-label {
 		font-size: 0.8rem;
 		font-weight: 700;
-		color: #2f4f78;
+		color: #91526d;
 	}
 
 	.paid-link {
 		font-weight: 600;
-		color: #5b6f87;
+		color: #9c6b82;
 	}
 
 	.amazon-disclosure {
 		margin: 0.6rem 0 0;
 		font-size: 0.82rem;
-		color: #52657d;
+		color: #816572;
 	}
 
 	.trust-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 		gap: 0.75rem;
 		margin-top: 0.8rem;
 	}
 
 	.trust-grid article {
 		padding: 0.9rem;
-		border: 1px solid #dee8f4;
+		border: 1px solid #efd5df;
 		border-radius: 12px;
-		background: #f7fbff;
+		background: #fff8fb;
+		transition: transform 140ms ease, box-shadow 140ms ease;
+	}
+
+	.trust-grid article:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 12px 22px rgba(172, 78, 116, 0.1);
+	}
+
+	.mini-swatch {
+		display: inline-block;
+		width: 0.8rem;
+		height: 0.8rem;
+		border-radius: 50%;
+		margin-right: 0.4rem;
+		vertical-align: middle;
 	}
 
 	.trust-grid h3 {
 		margin: 0;
 		font-size: 1rem;
-		color: #143459;
+		color: #6f2f4f;
 	}
 
 	.trust-grid p {
 		margin: 0.45rem 0 0;
-		color: #334155;
+		color: #5a5561;
 		line-height: 1.5;
 	}
 
@@ -865,14 +1215,47 @@
 		text-decoration: none;
 		padding: 0.8rem 0.9rem;
 		border-radius: 11px;
-		border: 1px solid #dce6f2;
-		background: #f9fbff;
-		color: #112f4f;
+		border: 1px solid #edd1de;
+		background: #fff9fb;
+		color: #6a2d48;
 		font-weight: 700;
+		transition: transform 140ms ease, box-shadow 140ms ease;
+	}
+
+	.article-list a:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 10px 20px rgba(172, 78, 116, 0.1);
+	}
+
+	.guide-main {
+		display: grid;
+		gap: 0.3rem;
+	}
+
+	.guide-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.72rem;
+		font-weight: 700;
+		padding: 0.18rem 0.5rem;
+		border-radius: 999px;
+		background: #fdebf1;
+		color: #9f3f67;
+		width: fit-content;
+		text-transform: capitalize;
+	}
+
+	.pill-dot {
+		width: 0.42rem;
+		height: 0.42rem;
+		border-radius: 50%;
+		background: #e77aa6;
+		display: inline-block;
 	}
 
 	.article-list small {
-		color: #5f738c;
+		color: #8b6778;
 		font-size: 0.8rem;
 		font-weight: 600;
 		white-space: nowrap;
@@ -881,18 +1264,24 @@
 	.faq > div {
 		margin-top: 0.8rem;
 		padding-top: 0.8rem;
-		border-top: 1px solid #e4e9f2;
+		border-top: 1px solid #efdbe3;
 	}
 
 	.faq h3 {
 		margin: 0;
 		font-size: 1rem;
-		color: #123456;
+		color: #6f2f4f;
 	}
 
 	.faq p {
 		margin: 0.45rem 0 0;
-		color: #334155;
+		color: #5a5561;
+	}
+
+	@media (max-width: 900px) {
+		.hero-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	@media (max-width: 720px) {
