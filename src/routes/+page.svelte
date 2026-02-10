@@ -4,6 +4,7 @@
 	import { injectAnalytics, track } from '@vercel/analytics/sveltekit';
 	import { rgbToHex, getToneNameFromRGB, getBestMatchedShades, getUndertone } from '$lib/colorUtils';
 	import { shadeColors } from '$lib/shadeColors';
+	import { posts } from './blog/_posts';
 
 	injectAnalytics();
 
@@ -25,6 +26,9 @@
 	let analysisProgress = 0;
 	let analysisStage = 'Preparing image...';
 	let progressInterval: ReturnType<typeof setInterval> | null = null;
+	const latestPosts = [...posts]
+		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+		.slice(0, 3);
 
 	const siteUrl = 'https://lipstickmatcher.com';
 	const homeStructuredData = JSON.stringify([
@@ -436,22 +440,24 @@
 
 	<section class="content-boost" aria-labelledby="content-boost-title">
 		<div class="section-head">
-			<h2 id="content-boost-title">Popular reads</h2>
+			<h2 id="content-boost-title">Latest guides</h2>
 			<a href="/blog" class="secondary-link">View all articles</a>
 		</div>
 		<ul class="article-list">
-			<li>
-				<a href="/blog/2025-spring-lipstick-trends">
-					<span>Spring 2025 Lipstick Trends</span>
-					<small>April 20, 2025</small>
-				</a>
-			</li>
-			<li>
-				<a href="/blog/matte-vs-glossy-lipstick">
-					<span>Matte vs Glossy: Which Finish Fits You?</span>
-					<small>April 15, 2025</small>
-				</a>
-			</li>
+			{#each latestPosts as post}
+				<li>
+					<a href={`/blog/${post.slug}`}>
+						<span>{post.title}</span>
+						<small>
+							{new Date(post.date).toLocaleDateString('en-US', {
+								month: 'long',
+								day: 'numeric',
+								year: 'numeric'
+							})}
+						</small>
+					</a>
+				</li>
+			{/each}
 		</ul>
 	</section>
 

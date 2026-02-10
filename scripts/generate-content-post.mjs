@@ -74,17 +74,112 @@ function getLogicSnapshot() {
   const fallbackShades = fallbackMatch ? extractQuotedValues(fallbackMatch[1]) : [];
 
   const merged = [...new Set([...toneShades, ...undertoneShades, ...fallbackShades])];
-  const shownPool = merged.slice(0, 15).join(', ');
+  const undertoneFamilies = { cool: [], warm: [], neutral: [] };
+
+  if (undertoneMapBlock) {
+    const mapText = undertoneMapBlock;
+    const coolMatch = mapText.match(/cool:\s*\[(.*?)\]/s);
+    const warmMatch = mapText.match(/warm:\s*\[(.*?)\]/s);
+    const neutralMatch = mapText.match(/neutral:\s*\[(.*?)\]/s);
+    if (coolMatch) undertoneFamilies.cool = extractQuotedValues(coolMatch[1]);
+    if (warmMatch) undertoneFamilies.warm = extractQuotedValues(warmMatch[1]);
+    if (neutralMatch) undertoneFamilies.neutral = extractQuotedValues(neutralMatch[1]);
+  }
 
   return {
-    shownPool,
+    undertoneFamilies,
+    poolPreview: merged.slice(0, 12).join(', '),
     poolCount: merged.length,
     sourcePath: 'src/lib/colorUtils.ts'
   };
 }
 
-function buildPost(topic, dateIso, logicSnapshot) {
+function getRelatedTopics(topics, index) {
+  if (topics.length < 2) return [];
+  const prev = topics[(index - 1 + topics.length) % topics.length];
+  const next = topics[(index + 1) % topics.length];
+  return [prev, next];
+}
+
+function getExistingBlogSlugs() {
+  return fs
+    .readdirSync(BLOG_DIR)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => file.replace('.md', ''));
+}
+
+function getRelatedLinks(topics, topic, index) {
+  const existingSlugs = new Set(getExistingBlogSlugs());
+  const byQueueNeighbors = getRelatedTopics(topics, index)
+    .filter((item) => existingSlugs.has(item.slug) && item.slug !== topic.slug)
+    .map((item) => ({ title: item.title, slug: item.slug }));
+
+  if (byQueueNeighbors.length >= 2) return byQueueNeighbors.slice(0, 2);
+
+  const fallbackExisting = topics
+    .filter((item) => item.slug !== topic.slug && existingSlugs.has(item.slug))
+    .slice(0, 2)
+    .map((item) => ({ title: item.title, slug: item.slug }));
+
+  return [...byQueueNeighbors, ...fallbackExisting].slice(0, 2);
+}
+
+function getTopicSpecificBlock(topic, logicSnapshot) {
+  const slug = topic.slug.toLowerCase();
+  const cool = logicSnapshot.undertoneFamilies.cool.slice(0, 3).join(', ');
+  const warm = logicSnapshot.undertoneFamilies.warm.slice(0, 3).join(', ');
+  const neutral = logicSnapshot.undertoneFamilies.neutral.slice(0, 3).join(', ');
+
+  if (slug.includes('vs') || slug.includes('comparison')) {
+    return `## Side-by-side test you can do in two minutes
+
+Pick two shades that are close in depth, then compare them in daylight:
+
+1. Apply one shade directly.
+2. Take one selfie facing a window.
+3. Switch to the second shade and repeat.
+4. Keep the one that makes your skin look more balanced and bright.
+
+If both look good, choose by vibe: polished for day, bolder for night.`;
+  }
+
+  if (slug.includes('mistakes')) {
+    return `## Common mistakes and easy fixes
+
+- Shade looks gray: move one step warmer.
+- Shade looks too orange: move one step cooler.
+- Shade looks heavy: try the same color family in a softer finish.
+- Shade disappears: go one step deeper while keeping the same undertone family.`;
+  }
+
+  if (slug.includes('office')) {
+    return `## Workday-friendly shade families
+
+- Cool-leaning options: ${cool || 'rose, plum, berry'}.
+- Warm-leaning options: ${warm || 'terracotta, coral, caramel'}.
+- Neutral options: ${neutral || 'balanced nude, soft rose, muted plum'}.
+
+Keep saturation moderate and finish comfortable for all-day wear.`;
+  }
+
+  return `## Shade families to try first
+
+Start with families the matcher already favors:
+
+- Cool-leaning: ${cool || 'rose, plum, berry'}.
+- Warm-leaning: ${warm || 'terracotta, coral, caramel'}.
+- Neutral-leaning: ${neutral || 'balanced nude, soft rose, clear gloss'}.
+
+This gives you a practical starting point before fine-tuning depth and finish.`;
+}
+
+function buildPost(topic, dateIso, logicSnapshot, relatedTopics) {
   const tags = `[${topic.tags.map((tag) => `"${tag}"`).join(', ')}]`;
+  const relatedLinks = relatedTopics.length
+    ? relatedTopics.map((item) => `- [${item.title}](/blog/${item.slug})`).join('\n')
+    : '- [Lipstick Matcher Blog](/blog)\n- [How It Is Matched](/how-its-matched)';
+  const topicBlock = getTopicSpecificBlock(topic, logicSnapshot);
+
   return `---
 title: "${topic.title}"
 description: "${topic.description}"
@@ -92,47 +187,56 @@ date: ${dateIso}
 tags: ${tags}
 ---
 
-If you have ever wondered why one lipstick looks amazing in store lighting but feels off in daylight, you are not alone.
-Most of us are balancing tone depth, undertone, and finish all at once, and that can get confusing fast.
+${topic.primaryKeyword} can feel confusing when you are trying to juggle undertone, depth, and finish at the same time.
+This guide keeps it simple, practical, and aligned with the way Lipstick Matcher actually recommends shades.
 
-For this guide, we are keeping things simple and aligned with how **Lipstick Matcher** actually works.
-That means this article follows the same matching logic used in the app, sourced from \`${logicSnapshot.sourcePath}\`.
+## ${topic.primaryKeyword}: quick rules that work
 
-## The quick takeaway
-
-Start with undertone alignment first, then adjust depth and finish.
-You will usually get better results faster than chasing trend names alone.
+- Match undertone first.
+- Then adjust depth one step up or down.
+- Use finish to control the final vibe.
 
 ## How Lipstick Matcher decides your shades
 
 1. Your selfie is sampled from the cheek area.
-2. RGB values are converted to HSL to estimate tone depth.
+2. Color values are used to estimate tone depth.
 3. Undertone is classified as cool, warm, or neutral.
 4. Tone-based and undertone-based shade lists are merged.
 5. The app returns up to 3 unique suggestions.
 
-## What this means in practice
+${topicBlock}
 
-If your result feels close but not perfect, your best next move is usually:
+## 3 fast rules for better picks
 
-- Same undertone family
-- One step lighter or deeper
-- A finish adjustment (matte, satin, or gloss) based on comfort
+1. Stay in the same undertone family before changing anything else.
+2. If a shade feels flat, go one step deeper.
+3. If a shade feels heavy, try the same family in a softer finish.
 
-## Matching notes from the current code
+## Common mistakes to avoid
 
-- Low saturation (\`s < 20\`) is treated as neutral.
-- Very light skin has specific cool checks.
-- Hue ranges are used for warm/cool decisions with neutral fallback.
+- Choosing only by trend names.
+- Testing under harsh lighting.
+- Switching undertone and depth at the same time.
 
-Current in-app shade token pool includes:
-${logicSnapshot.shownPool}.
+## Quick FAQ
 
-Total unique shade tokens currently referenced in code: ${logicSnapshot.poolCount}.
+### How do I know if I should go lighter or deeper?
+If the shade disappears, go deeper. If it feels too intense, go lighter.
+
+### What if two shades both look good?
+Pick based on finish and occasion. Matte usually reads bolder, while satin or gloss looks softer.
+
+### Is this based on random beauty trends?
+No. The guide follows the same logic family used by the matcher so recommendations feel consistent.
 
 ## Try your own match
 
-Use the [Lipstick Matcher](/) for a quick starting point, then review [how it is matched](/how-its-matched) if you want the technical breakdown.
+Use the [Lipstick Matcher](/) to get your shade starting point in under a minute.
+Want the method overview? See [How It Is Matched](/how-its-matched).
+
+## Related guides
+
+${relatedLinks}
 `;
 }
 
@@ -153,12 +257,14 @@ function main() {
   }
 
   const cursor = Number.isInteger(config.cursor) ? config.cursor : 0;
-  const topic = config.topics[cursor % config.topics.length];
+  const topicIndex = cursor % config.topics.length;
+  const topic = config.topics[topicIndex];
+  const relatedTopics = getRelatedLinks(config.topics, topic, topicIndex);
   const dateIso = toIsoDate();
   const slug = buildUniqueSlug(topic.slug);
   const postPath = path.join(BLOG_DIR, `${slug}.md`);
   const logicSnapshot = getLogicSnapshot();
-  const postBody = buildPost(topic, dateIso, logicSnapshot);
+  const postBody = buildPost(topic, dateIso, logicSnapshot, relatedTopics);
 
   if (DRY_RUN) {
     console.log(`[dry-run] Next topic index: ${cursor}`);

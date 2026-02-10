@@ -58,6 +58,34 @@
 	<div class="content">
 		<svelte:component this={data.post.component} />
 	</div>
+
+	<section class="post-cta" aria-label="Try matcher">
+		<h2>Ready to test your own shades?</h2>
+		<p>Upload a selfie and get your top lipstick matches in under a minute.</p>
+		<a href="/" class="cta-button">Try Lipstick Matcher</a>
+	</section>
+
+	{#if data.relatedPosts?.length > 0}
+		<section class="related-guides" aria-label="Related guides">
+			<h2>Related guides</h2>
+			<ul>
+				{#each data.relatedPosts as post}
+					<li>
+						<a href={`/blog/${post.slug}`}>
+							<span>{post.title}</span>
+							<small>
+								{new Date(post.date).toLocaleDateString('en-US', {
+									month: 'long',
+									day: 'numeric',
+									year: 'numeric'
+								})}
+							</small>
+						</a>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 </article>
 
 <style>
@@ -111,5 +139,64 @@
 		display: block;
 		margin: 1.25rem auto;
 		border-radius: 12px;
+	}
+
+	.post-cta,
+	.related-guides {
+		margin-top: 1.25rem;
+		padding: 1rem;
+		border: 1px solid #dce6f2;
+		border-radius: 12px;
+		background: #f8fbff;
+	}
+
+	.post-cta h2,
+	.related-guides h2 {
+		margin: 0;
+		font-size: 1.2rem;
+		color: #143459;
+	}
+
+	.post-cta p {
+		margin: 0.45rem 0 0.9rem;
+	}
+
+	.cta-button {
+		display: inline-block;
+		text-decoration: none;
+		padding: 0.65rem 0.9rem;
+		border-radius: 10px;
+		font-weight: 700;
+		color: #fff;
+		background: linear-gradient(120deg, #c14934 0%, #9f2f40 100%);
+	}
+
+	.related-guides ul {
+		list-style: none;
+		padding: 0;
+		margin: 0.75rem 0 0;
+		display: grid;
+		gap: 0.6rem;
+	}
+
+	.related-guides a {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 0.8rem;
+		padding: 0.7rem 0.8rem;
+		border-radius: 10px;
+		text-decoration: none;
+		background: #fff;
+		border: 1px solid #dce6f2;
+		color: #143459;
+		font-weight: 700;
+	}
+
+	.related-guides small {
+		color: #64748b;
+		font-size: 0.8rem;
+		font-weight: 600;
+		white-space: nowrap;
 	}
 </style>

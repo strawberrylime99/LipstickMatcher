@@ -11,7 +11,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
 		"content:generate": "node scripts/generate-content-post.mjs",
-		"content:dry-run": "node scripts/generate-content-post.mjs --dry-run"
+		"content:dry-run": "node scripts/generate-content-post.mjs --dry-run",
+		"indexnow:ping": "node scripts/ping-indexnow.mjs"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^4.0.0",
