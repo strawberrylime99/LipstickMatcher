@@ -709,6 +709,11 @@
 		width: 178px;
 		height: auto;
 		display: block;
+		box-shadow: none;
+		filter: none;
+		background: transparent;
+		border: 0;
+		border-radius: 0;
 	}
 
 	.nav-links {
