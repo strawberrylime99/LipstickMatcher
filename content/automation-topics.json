@@ -1,109 +1,109 @@
 {
-    "cursor":  0,
-    "topics":  [
-                   {
-                       "slug":  "best-lipstick-shades-for-cool-undertones",
-                       "title":  "Best Lipstick Shades for Cool Undertones",
-                       "description":  "A practical guide to cool-undertone lipstick shades, easy shade families to test, and common mistakes to avoid.",
-                       "tags":  [
-                                    "lipstick",
-                                    "cool undertone",
-                                    "shade guide",
-                                    "beauty tips"
-                                ],
-                       "primaryKeyword":  "best lipstick shades for cool undertones",
-                       "secondaryKeyword":  "cool undertone lipstick colors"
-                   },
-                   {
-                       "slug":  "best-nude-lipstick-by-skin-depth",
-                       "title":  "Best Nude Lipstick by Skin Depth",
-                       "description":  "How to pick a nude lipstick that does not wash you out, with practical shade ranges by skin depth and undertone.",
-                       "tags":  [
-                                    "nude lipstick",
-                                    "skin tone",
-                                    "undertone",
-                                    "makeup guide"
-                                ],
-                       "primaryKeyword":  "best nude lipstick by skin tone",
-                       "secondaryKeyword":  "nude lipstick undertone guide"
-                   },
-                   {
-                       "slug":  "blue-red-vs-orange-red-lipstick",
-                       "title":  "Blue-Red vs Orange-Red Lipstick: Which One Flatters You?",
-                       "description":  "A side-by-side lipstick comparison that helps you pick between blue-red and orange-red using undertone cues.",
-                       "tags":  [
-                                    "red lipstick",
-                                    "undertone",
-                                    "comparison",
-                                    "beauty"
-                                ],
-                       "primaryKeyword":  "blue red vs orange red lipstick",
-                       "secondaryKeyword":  "which red lipstick suits my undertone"
-                   },
-                   {
-                       "slug":  "matte-satin-or-gloss-for-dry-lips",
-                       "title":  "Matte, Satin, or Gloss for Dry Lips: What Works Best?",
-                       "description":  "A practical finish guide for dry lips, including prep steps and what each finish looks like over time.",
-                       "tags":  [
-                                    "dry lips",
-                                    "matte lipstick",
-                                    "satin lipstick",
-                                    "gloss"
-                                ],
-                       "primaryKeyword":  "best lipstick finish for dry lips",
-                       "secondaryKeyword":  "matte vs satin vs gloss lipstick"
-                   },
-                   {
-                       "slug":  "office-friendly-lipstick-shades-by-undertone",
-                       "title":  "Office-Friendly Lipstick Shades by Undertone",
-                       "description":  "Low-effort lipstick shades that look polished at work, grouped by warm, cool, and neutral undertones.",
-                       "tags":  [
-                                    "office makeup",
-                                    "lipstick shades",
-                                    "undertone",
-                                    "everyday beauty"
-                                ],
-                       "primaryKeyword":  "office friendly lipstick shades",
-                       "secondaryKeyword":  "everyday lipstick by undertone"
-                   },
-                   {
-                       "slug":  "how-lighting-changes-lipstick-match-results",
-                       "title":  "How Lighting Changes Lipstick Match Results",
-                       "description":  "Why different lighting creates different shade outcomes and how to get more stable selfie-based matches.",
-                       "tags":  [
-                                    "lighting",
-                                    "lipstick matcher",
-                                    "beauty tech",
-                                    "selfie tips"
-                                ],
-                       "primaryKeyword":  "lighting effect on lipstick match",
-                       "secondaryKeyword":  "selfie lighting for accurate skin tone"
-                   },
-                   {
-                       "slug":  "warm-neutral-or-cool-undertone-quick-test",
-                       "title":  "Warm, Neutral, or Cool Undertone: A Quick Test",
-                       "description":  "Simple undertone checks you can do in minutes and how each result changes lipstick shade choices.",
-                       "tags":  [
-                                    "undertone test",
-                                    "warm undertone",
-                                    "cool undertone",
-                                    "neutral undertone"
-                                ],
-                       "primaryKeyword":  "warm neutral cool undertone test",
-                       "secondaryKeyword":  "how to find undertone for lipstick"
-                   },
-                   {
-                       "slug":  "lipstick-shade-mistakes-that-age-your-look",
-                       "title":  "Lipstick Shade Mistakes That Age Your Look",
-                       "description":  "Common lipstick shade and finish mistakes that can look harsh, plus easy fixes based on tone and undertone.",
-                       "tags":  [
-                                    "lipstick mistakes",
-                                    "makeup tips",
-                                    "undertone",
-                                    "shade matching"
-                                ],
-                       "primaryKeyword":  "lipstick shade mistakes",
-                       "secondaryKeyword":  "how to choose flattering lipstick"
-                   }
-               ]
+  "cursor": 1,
+  "topics": [
+    {
+      "slug": "best-lipstick-shades-for-cool-undertones",
+      "title": "Best Lipstick Shades for Cool Undertones",
+      "description": "A practical guide to cool-undertone lipstick shades, easy shade families to test, and common mistakes to avoid.",
+      "tags": [
+        "lipstick",
+        "cool undertone",
+        "shade guide",
+        "beauty tips"
+      ],
+      "primaryKeyword": "best lipstick shades for cool undertones",
+      "secondaryKeyword": "cool undertone lipstick colors"
+    },
+    {
+      "slug": "best-nude-lipstick-by-skin-depth",
+      "title": "Best Nude Lipstick by Skin Depth",
+      "description": "How to pick a nude lipstick that does not wash you out, with practical shade ranges by skin depth and undertone.",
+      "tags": [
+        "nude lipstick",
+        "skin tone",
+        "undertone",
+        "makeup guide"
+      ],
+      "primaryKeyword": "best nude lipstick by skin tone",
+      "secondaryKeyword": "nude lipstick undertone guide"
+    },
+    {
+      "slug": "blue-red-vs-orange-red-lipstick",
+      "title": "Blue-Red vs Orange-Red Lipstick: Which One Flatters You?",
+      "description": "A side-by-side lipstick comparison that helps you pick between blue-red and orange-red using undertone cues.",
+      "tags": [
+        "red lipstick",
+        "undertone",
+        "comparison",
+        "beauty"
+      ],
+      "primaryKeyword": "blue red vs orange red lipstick",
+      "secondaryKeyword": "which red lipstick suits my undertone"
+    },
+    {
+      "slug": "matte-satin-or-gloss-for-dry-lips",
+      "title": "Matte, Satin, or Gloss for Dry Lips: What Works Best?",
+      "description": "A practical finish guide for dry lips, including prep steps and what each finish looks like over time.",
+      "tags": [
+        "dry lips",
+        "matte lipstick",
+        "satin lipstick",
+        "gloss"
+      ],
+      "primaryKeyword": "best lipstick finish for dry lips",
+      "secondaryKeyword": "matte vs satin vs gloss lipstick"
+    },
+    {
+      "slug": "office-friendly-lipstick-shades-by-undertone",
+      "title": "Office-Friendly Lipstick Shades by Undertone",
+      "description": "Low-effort lipstick shades that look polished at work, grouped by warm, cool, and neutral undertones.",
+      "tags": [
+        "office makeup",
+        "lipstick shades",
+        "undertone",
+        "everyday beauty"
+      ],
+      "primaryKeyword": "office friendly lipstick shades",
+      "secondaryKeyword": "everyday lipstick by undertone"
+    },
+    {
+      "slug": "how-lighting-changes-lipstick-match-results",
+      "title": "How Lighting Changes Lipstick Match Results",
+      "description": "Why different lighting creates different shade outcomes and how to get more stable selfie-based matches.",
+      "tags": [
+        "lighting",
+        "lipstick matcher",
+        "beauty tech",
+        "selfie tips"
+      ],
+      "primaryKeyword": "lighting effect on lipstick match",
+      "secondaryKeyword": "selfie lighting for accurate skin tone"
+    },
+    {
+      "slug": "warm-neutral-or-cool-undertone-quick-test",
+      "title": "Warm, Neutral, or Cool Undertone: A Quick Test",
+      "description": "Simple undertone checks you can do in minutes and how each result changes lipstick shade choices.",
+      "tags": [
+        "undertone test",
+        "warm undertone",
+        "cool undertone",
+        "neutral undertone"
+      ],
+      "primaryKeyword": "warm neutral cool undertone test",
+      "secondaryKeyword": "how to find undertone for lipstick"
+    },
+    {
+      "slug": "lipstick-shade-mistakes-that-age-your-look",
+      "title": "Lipstick Shade Mistakes That Age Your Look",
+      "description": "Common lipstick shade and finish mistakes that can look harsh, plus easy fixes based on tone and undertone.",
+      "tags": [
+        "lipstick mistakes",
+        "makeup tips",
+        "undertone",
+        "shade matching"
+      ],
+      "primaryKeyword": "lipstick shade mistakes",
+      "secondaryKeyword": "how to choose flattering lipstick"
+    }
+  ]
 }
