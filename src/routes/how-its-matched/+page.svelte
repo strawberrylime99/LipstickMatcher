@@ -61,7 +61,9 @@
 <main class="page">
 	<header class="hero">
 		<div class="topbar">
-			<img src="/logo.png" alt="Lipstick Matcher" class="logo" />
+			<a href="/" class="brand">
+				<img src="/logo.png" alt="Lipstick Matcher" class="logo" />
+			</a>
 			<nav aria-label="Main navigation" class="nav-links">
 				<a href="/">Matcher</a>
 				<a href="/how-its-matched" aria-current="page">How It Works</a>
@@ -141,23 +143,23 @@
 		margin: 0;
 		font-family: 'Manrope', 'Segoe UI', sans-serif;
 		background:
-			radial-gradient(circle at top left, #fdf2e7 0%, rgba(253, 242, 231, 0) 40%),
-			linear-gradient(160deg, #fffdfa 0%, #f6f8fc 100%);
+			radial-gradient(circle at top left, rgba(247, 168, 184, 0.12) 0%, rgba(247, 168, 184, 0) 45%),
+			linear-gradient(160deg, #fff7f9 0%, #fff5f2 100%);
 		color: #1f2937;
 	}
 
 	.page {
-		max-width: 980px;
+		max-width: 1120px;
 		margin: 0 auto;
-		padding: 1.1rem 1rem 3.5rem;
+		padding: 1.25rem 1rem 3.5rem;
 	}
 
 	.hero {
-		border-radius: 18px;
-		border: 1px solid #dce6f0;
-		background: linear-gradient(130deg, #ffffff 0%, #f4f8ff 100%);
-		padding: 1rem 1rem 1.35rem;
-		box-shadow: 0 18px 44px rgba(6, 34, 79, 0.07);
+		border: 1px solid #f0d8de;
+		background: linear-gradient(130deg, #ffffff 0%, #fff4f8 100%);
+		border-radius: 24px;
+		padding: 1rem 1rem 1.4rem;
+		box-shadow: 0 20px 50px rgba(134, 49, 83, 0.08);
 	}
 
 	.topbar {
@@ -169,68 +171,81 @@
 	}
 
 	.logo {
-		width: 156px;
+		width: 178px;
 		height: auto;
+		display: block;
+	}
+
+	.brand {
+		display: inline-block;
+		text-decoration: none;
 	}
 
 	.nav-links {
 		display: flex;
-		gap: 0.75rem;
+		gap: 0.8rem;
 		flex-wrap: wrap;
 	}
 
 	.nav-links a {
 		text-decoration: none;
-		padding: 0.52rem 0.88rem;
+		padding: 0.52rem 0.9rem;
 		border-radius: 999px;
 		font-weight: 700;
-		font-size: 0.9rem;
-		background: #e7effa;
-		border: 1px solid #c8d8ef;
-		color: #1e3a5f;
+		font-size: 0.92rem;
+		color: #8e3f5f;
+		background: #fff0f5;
+		border: 1px solid #efc6d5;
+		transition: transform 150ms ease, box-shadow 150ms ease;
+	}
+
+	.nav-links a:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 16px rgba(164, 75, 110, 0.12);
 	}
 
 	.nav-links a[aria-current='page'] {
-		background: #1e3a5f;
+		background: #cf6f96;
 		color: #fff;
-		border-color: #1e3a5f;
+		border-color: #cf6f96;
 	}
 
 	.eyebrow {
 		margin: 0.95rem 0 0;
 		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		font-size: 0.75rem;
+		letter-spacing: 0.16em;
+		font-size: 0.72rem;
 		font-weight: 800;
-		color: #b5442e;
+		color: #a94b6e;
 	}
 
 	h1 {
 		margin: 0.42rem 0 0.6rem;
-		font-size: clamp(1.65rem, 3.2vw, 2.4rem);
+		font-size: clamp(1.9rem, 4vw, 3rem);
 		line-height: 1.16;
-		color: #0d223d;
+		color: #61263f;
+		font-family: 'Cormorant Garamond', 'Georgia', serif;
 	}
 
 	.hero p {
 		margin: 0;
 		line-height: 1.6;
-		color: #334155;
+		color: #4b5563;
 	}
 
 	.panel {
-		margin-top: 1rem;
-		padding: 1.1rem;
+		margin-top: 1.25rem;
+		padding: 1.2rem;
 		background: #fff;
-		border-radius: 14px;
-		border: 1px solid #e2e8f0;
-		box-shadow: 0 10px 24px rgba(8, 30, 66, 0.04);
+		border: 1px solid #efd8df;
+		border-radius: 18px;
+		box-shadow: 0 12px 26px rgba(102, 41, 66, 0.05);
 	}
 
 	h2 {
 		margin: 0;
-		font-size: 1.26rem;
-		color: #0d223d;
+		font-size: 1.3rem;
+		color: #6e2e4d;
 	}
 
 	ol,
@@ -238,7 +253,7 @@
 		margin: 0.75rem 0 0;
 		padding-left: 1.15rem;
 		line-height: 1.6;
-		color: #334155;
+		color: #5a5561;
 	}
 
 	li {
@@ -248,7 +263,7 @@
 	h3 {
 		margin: 0;
 		font-size: 1rem;
-		color: #143459;
+		color: #6f2f4f;
 	}
 
 	#faq-title + div,
@@ -256,27 +271,35 @@
 	#faq-title + div + div + div {
 		margin-top: 0.8rem;
 		padding-top: 0.8rem;
-		border-top: 1px solid #e8edf4;
+		border-top: 1px solid #efdbe3;
 	}
 
 	.panel p {
 		margin: 0.35rem 0 0;
-		color: #334155;
+		color: #5a5561;
 	}
 
 	.cta {
 		text-align: center;
+		background: linear-gradient(150deg, #fff9fb 0%, #fff2f7 100%);
 	}
 
 	.cta button {
 		margin-top: 0.85rem;
-		padding: 0.68rem 1rem;
-		border-radius: 10px;
+		padding: 0.72rem 1.2rem;
+		border-radius: 999px;
 		border: none;
 		font-weight: 800;
 		cursor: pointer;
-		background: linear-gradient(120deg, #c14934 0%, #9f2f40 100%);
+		background: linear-gradient(120deg, #d84d7f 0%, #b22856 100%);
 		color: #fff;
+		box-shadow: 0 10px 24px rgba(150, 34, 78, 0.28);
+		transition: transform 150ms ease, box-shadow 150ms ease;
+	}
+
+	.cta button:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 14px 28px rgba(150, 34, 78, 0.35);
 	}
 
 	@media (max-width: 720px) {
@@ -286,8 +309,8 @@
 
 		.hero,
 		.panel {
-			border-radius: 12px;
-			padding: 0.95rem;
+			border-radius: 14px;
+			padding: 1rem;
 		}
 	}
 </style>

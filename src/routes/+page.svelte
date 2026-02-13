@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount, onDestroy, tick } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { injectAnalytics, track } from '@vercel/analytics/sveltekit';
 	import { rgbToHex, getToneNameFromRGB, getBestMatchedShades, getUndertone } from '$lib/colorUtils';
 	import { shadeColors } from '$lib/shadeColors';
@@ -9,13 +8,12 @@
 	injectAnalytics();
 
 	type Point = { x: number; y: number };
-	type UploadSource = 'file_picker' | 'drop_zone' | 'sample_photo';
+	type UploadSource = 'file_picker' | 'drop_zone';
 
 	let imageUrl: string | null = null;
 	let imageElement: HTMLImageElement | null = null;
 	let faceapi: typeof import('face-api.js') | null = null;
 	let uploadInput: HTMLInputElement | null = null;
-	let uploaderSection: HTMLElement | null = null;
 
 	let sampledHex: string | null = null;
 	let suggestedShades: string[] = [];
@@ -29,19 +27,12 @@
 	let analysisProgress = 0;
 	let analysisStage = 'Preparing image...';
 	let isDragActive = false;
-	let workflowStep = 0;
 	let progressInterval: ReturnType<typeof setInterval> | null = null;
 
 	const siteUrl = 'https://lipstickmatcher.com';
 	const latestPosts = [...posts]
 		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 		.slice(0, 3);
-
-	const heroSwatches = [
-		{ name: 'Rosy Nude', hex: '#ca8e8f' },
-		{ name: 'Warm Peach', hex: '#f4a57f' },
-		{ name: 'Blue-Red', hex: '#a51d31' }
-	];
 
 	const homeStructuredData = JSON.stringify([
 		{
@@ -157,11 +148,6 @@
 		suggestedShades = [];
 		detectedTone = null;
 		detectedUndertone = null;
-		workflowStep = 1;
-	}
-
-	function scrollToUploader() {
-		uploaderSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 	}
 
 	function openFileDialog() {
@@ -199,7 +185,6 @@
 		isAnalyzing = true;
 		resetResults();
 		startProgress();
-		workflowStep = 2;
 		track('upload_started', { source });
 
 		try {
@@ -278,7 +263,6 @@
 
 			analysisProgress = 100;
 			analysisStage = 'Done';
-			workflowStep = 3;
 			track('analysis_complete', {
 				source,
 				detectedTone,
@@ -287,7 +271,6 @@
 			});
 		} catch (error) {
 			analysisError = error instanceof Error ? error.message : 'Could not process this photo.';
-			workflowStep = imageUrl ? 1 : 0;
 			track('analysis_error', {
 				source,
 				message: analysisError
@@ -332,44 +315,6 @@
 		isDragActive = false;
 	}
 
-	async function useSamplePhoto() {
-		imageUrl = '/sample-selfie.svg';
-		isAnalyzing = true;
-		resetResults();
-		startProgress();
-		workflowStep = 2;
-		track('upload_started', { source: 'sample_photo' });
-
-		try {
-			updateProgress(35, 'Loading sample...');
-			await new Promise((resolve) => setTimeout(resolve, 380));
-			updateProgress(62, 'Analyzing sample tone...');
-			await new Promise((resolve) => setTimeout(resolve, 380));
-			const [r, g, b]: [number, number, number] = [216, 166, 151];
-			sampledHex = rgbToHex(r, g, b);
-			detectedTone = getToneNameFromRGB(r, g, b);
-			detectedUndertone = getUndertone(r, g, b);
-			suggestedShades = getBestMatchedShades(r, g, b).slice(0, 3);
-			analysisProgress = 100;
-			analysisStage = 'Done';
-			workflowStep = 3;
-			track('analysis_complete', {
-				source: 'sample_photo',
-				detectedTone,
-				detectedUndertone,
-				shadeCount: suggestedShades.length
-			});
-		} catch {
-			analysisError = 'Could not load the sample photo.';
-			track('analysis_error', {
-				source: 'sample_photo',
-				message: analysisError
-			});
-		} finally {
-			stopProgress();
-			isAnalyzing = false;
-		}
-	}
 </script>
 
 <svelte:head>
@@ -429,43 +374,17 @@
 					no guesswork.
 				</p>
 				<div class="hero-actions">
-					<button class="cta-primary" on:click={scrollToUploader}>Get my 3 shade matches</button>
-					<button class="cta-secondary" on:click={() => goto('/how-its-matched')}>See how it works</button>
+					<button class="cta-primary cta-upload" on:click={openFileDialog} disabled={isModelLoading}>
+						Upload selfie
+					</button>
 				</div>
 			</div>
-
-			<aside class="hero-preview" aria-label="Beauty preview">
-				<h2>Instant beauty preview</h2>
-				<ul>
-					{#each heroSwatches as swatch}
-						<li>
-							<span class="preview-dot" style={`background:${swatch.hex}`}></span>
-							{swatch.name}
-						</li>
-					{/each}
-				</ul>
-				<div class="mini-card">
-					<p>Your match</p>
-					<strong>3 curated picks</strong>
-					<small>Tone + undertone aware</small>
-				</div>
-			</aside>
 		</div>
-	</header>
 
-	<section class="analyzer" aria-labelledby="analyzer-title" bind:this={uploaderSection} id="uploader">
-		<div class="section-head">
+		<section class="analyzer" aria-labelledby="analyzer-title" id="uploader">
+		<div class="section-head uploader-head">
 			<h2 id="analyzer-title">Upload your selfie</h2>
-			<button type="button" class="secondary-link" on:click={() => goto('/how-its-matched')}>
-				See the matching method
-			</button>
 		</div>
-
-		<ol class="stepper" aria-label="Matching steps">
-			<li class:active={workflowStep >= 1}><span>1</span> Upload</li>
-			<li class:active={workflowStep >= 2}><span>2</span> Analyze</li>
-			<li class:active={workflowStep >= 3}><span>3</span> Results</li>
-		</ol>
 
 		{#if isModelLoading}
 			<p class="model-status">Loading AI model...</p>
@@ -495,12 +414,9 @@
 			/>
 		</div>
 
-		<div class="action-row">
-			<button class="cta-primary" on:click={openFileDialog} disabled={isModelLoading}>Get my 3 shade matches</button>
-			<button class="cta-secondary" on:click={useSamplePhoto}>Try a sample photo</button>
-		</div>
-
-		<p class="privacy-note">?? Private: your photo never leaves your device.</p>
+		<p class="privacy-note">
+			Private: your photo never leaves your device. We do not store it anywhere or sell it to anyone.
+		</p>
 
 		<div class="upload-guidance" role="note" aria-label="Best results tips">
 			<p>For best accuracy:</p>
@@ -535,7 +451,8 @@
 				<img bind:this={imageElement} src={imageUrl} alt="Uploaded selfie preview" />
 			</div>
 		{/if}
-	</section>
+		</section>
+	</header>
 
 	{#if sampledHex || detectedTone || detectedUndertone || suggestedShades.length > 0}
 		<section class="results" aria-labelledby="results-title">
@@ -596,8 +513,6 @@
 			{/if}
 		</section>
 	{/if}
-
-	<button class="mobile-sticky-cta" on:click={scrollToUploader}>Get my 3 shade matches</button>
 
 	<section class="why-trust" aria-labelledby="why-trust-title">
 		<h2 id="why-trust-title">What makes the results feel polished</h2>
@@ -694,8 +609,8 @@
 
 	.hero-grid {
 		display: grid;
-		grid-template-columns: 1.4fr 1fr;
-		gap: 1rem;
+		grid-template-columns: 1fr;
+		gap: 0.8rem;
 		align-items: stretch;
 		margin-top: 0.9rem;
 	}
@@ -770,16 +685,15 @@
 		color: #4b5563;
 	}
 
-	.hero-actions,
-	.action-row {
+	.hero-actions {
 		display: flex;
 		gap: 0.65rem;
 		flex-wrap: wrap;
 		margin-top: 1rem;
+		justify-content: center;
 	}
 
 	.cta-primary,
-	.cta-secondary,
 	.secondary-link {
 		font-family: 'Manrope', 'Segoe UI', sans-serif;
 	}
@@ -791,14 +705,14 @@
 		font-weight: 800;
 		cursor: pointer;
 		color: #fff;
-		background: linear-gradient(120deg, #f7a8b8 0%, #e77aa6 100%);
-		box-shadow: 0 10px 24px rgba(192, 83, 132, 0.22);
+		background: linear-gradient(120deg, #d84d7f 0%, #b22856 100%);
+		box-shadow: 0 10px 24px rgba(150, 34, 78, 0.28);
 		transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
 	}
 
 	.cta-primary:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 14px 28px rgba(192, 83, 132, 0.28);
+		box-shadow: 0 14px 28px rgba(150, 34, 78, 0.35);
 		filter: saturate(1.08);
 	}
 
@@ -806,7 +720,11 @@
 		transform: translateY(0);
 	}
 
-	.cta-secondary,
+	.cta-upload {
+		padding: 0.8rem 1.35rem;
+		font-size: 1rem;
+	}
+
 	.secondary-link {
 		border: 1px solid #e7a3bf;
 		background: #fff;
@@ -819,69 +737,9 @@
 		transition: transform 150ms ease, box-shadow 150ms ease;
 	}
 
-	.cta-secondary:hover,
 	.secondary-link:hover {
 		transform: translateY(-2px);
 		box-shadow: 0 8px 16px rgba(173, 74, 113, 0.14);
-	}
-
-	.hero-preview {
-		border: 1px solid rgba(231, 122, 166, 0.22);
-		border-radius: 18px;
-		background: linear-gradient(150deg, rgba(255, 255, 255, 0.76), rgba(255, 241, 246, 0.72));
-		backdrop-filter: blur(4px);
-		padding: 0.9rem;
-	}
-
-	.hero-preview h2 {
-		margin: 0;
-		font-size: 1rem;
-		color: #7f3656;
-	}
-
-	.hero-preview ul {
-		list-style: none;
-		padding: 0;
-		margin: 0.7rem 0;
-		display: grid;
-		gap: 0.42rem;
-	}
-
-	.hero-preview li {
-		display: flex;
-		align-items: center;
-		gap: 0.55rem;
-		font-weight: 700;
-		color: #6f3652;
-	}
-
-	.preview-dot {
-		width: 0.95rem;
-		height: 0.95rem;
-		border-radius: 50%;
-		border: 1px solid rgba(255, 255, 255, 0.9);
-		box-shadow: 0 4px 9px rgba(105, 56, 80, 0.19);
-	}
-
-	.mini-card {
-		border: 1px solid rgba(231, 122, 166, 0.3);
-		padding: 0.8rem;
-		border-radius: 14px;
-		background: #fff;
-		box-shadow: inset 0 1px 8px rgba(236, 182, 201, 0.28);
-	}
-
-	.mini-card p,
-	.mini-card small {
-		margin: 0;
-		font-size: 0.86rem;
-		color: #7b4a5e;
-	}
-
-	.mini-card strong {
-		display: block;
-		margin: 0.2rem 0;
-		color: #6f2744;
 	}
 
 	.analyzer,
@@ -897,6 +755,10 @@
 		box-shadow: 0 12px 26px rgba(102, 41, 66, 0.05);
 	}
 
+	.hero .analyzer {
+		margin-top: 1.1rem;
+	}
+
 	.section-head {
 		display: flex;
 		justify-content: space-between;
@@ -905,50 +767,15 @@
 		flex-wrap: wrap;
 	}
 
+	.uploader-head {
+		justify-content: center;
+		text-align: center;
+	}
+
 	h2 {
 		margin: 0;
 		font-size: 1.3rem;
 		color: #6e2e4d;
-	}
-
-	.stepper {
-		display: flex;
-		gap: 0.8rem;
-		list-style: none;
-		padding: 0;
-		margin: 0.9rem 0 0;
-		flex-wrap: wrap;
-	}
-
-	.stepper li {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		color: #8b7b84;
-		font-weight: 700;
-		font-size: 0.9rem;
-	}
-
-	.stepper li span {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.3rem;
-		height: 1.3rem;
-		border-radius: 50%;
-		border: 1px solid #e8bfd0;
-		background: #fff7fa;
-		font-size: 0.76rem;
-	}
-
-	.stepper li.active {
-		color: #9b365f;
-	}
-
-	.stepper li.active span {
-		background: #e77aa6;
-		color: #fff;
-		border-color: #e77aa6;
 	}
 
 	.drop-zone {
@@ -988,12 +815,14 @@
 		margin: 0.65rem 0 0;
 		font-size: 0.87rem;
 		color: #826876;
+		text-align: center;
 	}
 
 	.model-status {
 		margin: 0.9rem 0;
 		font-weight: 600;
 		color: #725260;
+		text-align: center;
 	}
 
 	.upload-guidance {
@@ -1193,10 +1022,6 @@
 		color: #8b6f7d;
 	}
 
-	.mobile-sticky-cta {
-		display: none;
-	}
-
 	.trust-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -1317,12 +1142,6 @@
 		color: #5a5561;
 	}
 
-	@media (max-width: 900px) {
-		.hero-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-
 	@media (max-width: 720px) {
 		.page {
 			padding: 0.8rem 0.75rem 3rem;
@@ -1341,25 +1160,6 @@
 		.article-list a {
 			flex-direction: column;
 			align-items: flex-start;
-		}
-
-		.mobile-sticky-cta {
-			display: inline-flex;
-			position: fixed;
-			right: 0.75rem;
-			left: 0.75rem;
-			bottom: 0.75rem;
-			justify-content: center;
-			border: none;
-			border-radius: 999px;
-			padding: 0.82rem 1rem;
-			font-weight: 800;
-			font-size: 0.95rem;
-			z-index: 40;
-			cursor: pointer;
-			color: #fff;
-			background: linear-gradient(120deg, #f7a8b8 0%, #e77aa6 100%);
-			box-shadow: 0 14px 28px rgba(171, 71, 111, 0.28);
 		}
 	}
 </style>
