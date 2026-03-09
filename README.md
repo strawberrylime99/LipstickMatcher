@@ -43,13 +43,6 @@ Custom logic for skintone extraction from cheeks
 ## Content Automation (PR-Only)
 
 This repo includes a twice-weekly content automation workflow that generates a blog draft and opens a GitHub PR.
-You only need to review and merge from your phone.
-
-- Workflow: `.github/workflows/content-draft-pr.yml`
-- Publish ping: `.github/workflows/indexnow-ping.yml`
-- Topic queue: `content/automation-topics.json`
-- Generator: `scripts/generate-content-post.mjs`
-- IndexNow script: `scripts/ping-indexnow.mjs`
 
 ### Local commands
 
