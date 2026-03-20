@@ -1,18 +1,21 @@
 <script lang="ts">
-	import { onMount, onDestroy, tick } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { injectAnalytics, track } from '@vercel/analytics/sveltekit';
-	import { rgbToHex, getToneNameFromRGB, getBestMatchedShades, getUndertone } from '$lib/colorUtils';
-	import { shadeColors } from '$lib/shadeColors';
+	import UploadAnalyzer from '$lib/components/UploadAnalyzer.svelte';
+	import MatchResults from '$lib/components/MatchResults.svelte';
+	import { loadFaceApiModels } from '$lib/analysis/faceModel';
+	import { analyzeSelfieImage } from '$lib/analysis/analyzeSelfie';
+	import type { FaceApiModule } from '$lib/analysis/types';
+	import { buildMatchProfile } from '$lib/recommendations/buildMatchProfile';
 	import { posts } from './blog/_posts';
 
 	injectAnalytics();
 
-	type Point = { x: number; y: number };
 	type UploadSource = 'file_picker' | 'drop_zone';
 
 	let imageUrl: string | null = null;
 	let imageElement: HTMLImageElement | null = null;
-	let faceapi: typeof import('face-api.js') | null = null;
+	let faceapi: FaceApiModule | null = null;
 	let uploadInput: HTMLInputElement | null = null;
 
 	let sampledHex: string | null = null;
@@ -80,45 +83,7 @@
 		});
 	}
 
-	function sampleMedianRgb(
-		ctx: CanvasRenderingContext2D,
-		center: Point,
-		radius: number
-	): [number, number, number] | null {
-		const { width, height } = ctx.canvas;
-		const x0 = Math.max(0, Math.floor(center.x - radius));
-		const y0 = Math.max(0, Math.floor(center.y - radius));
-		const x1 = Math.min(width - 1, Math.ceil(center.x + radius));
-		const y1 = Math.min(height - 1, Math.ceil(center.y + radius));
-
-		if (x0 > x1 || y0 > y1) return null;
-
-		const rs: number[] = [];
-		const gs: number[] = [];
-		const bs: number[] = [];
-
-		for (let y = y0; y <= y1; y++) {
-			for (let x = x0; x <= x1; x++) {
-				const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
-				const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-				if (luminance < 25 || luminance > 240) continue;
-
-				rs.push(r);
-				gs.push(g);
-				bs.push(b);
-			}
-		}
-
-		if (!rs.length) return null;
-
-		rs.sort((a, b) => a - b);
-		gs.sort((a, b) => a - b);
-		bs.sort((a, b) => a - b);
-		const mid = Math.floor(rs.length / 2);
-
-		return [rs[mid], gs[mid], bs[mid]];
-	}
-
+	// Keep progress state updates in one place for the page-level workflow.
 	function startProgress() {
 		analysisProgress = 10;
 		analysisStage = 'Preparing image...';
@@ -164,11 +129,7 @@
 	onMount(async () => {
 		try {
 			if (typeof window === 'undefined') return;
-			const module = await import('face-api.js');
-			faceapi = module;
-
-			await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-			await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+			faceapi = await loadFaceApiModels();
 			isModelLoading = false;
 		} catch (error) {
 			console.error(error);
@@ -181,6 +142,7 @@
 		stopProgress();
 	});
 
+	// The page now orchestrates analysis while shared modules handle the heavy lifting.
 	async function analyzeImage(imageDataUrl: string, source: UploadSource) {
 		isAnalyzing = true;
 		resetResults();
@@ -196,70 +158,17 @@
 				throw new Error('Model is still loading. Try again in a moment.');
 			}
 
-			await imageElement.decode();
-			updateProgress(48, 'Detecting face landmarks...');
-
-			const result = await faceapi
-				.detectSingleFace(imageElement, new faceapi.TinyFaceDetectorOptions())
-				.withFaceLandmarks();
-
-			if (!result) {
-				throw new Error('No face detected. Try a bright, front-facing photo.');
-			}
-
-			const imageWidth = imageElement.naturalWidth || imageElement.width;
-			const imageHeight = imageElement.naturalHeight || imageElement.height;
-
-			const resized = faceapi.resizeResults(result, {
-				width: imageWidth,
-				height: imageHeight
+			const { rgb } = await analyzeSelfieImage(imageElement, faceapi, ({ progress, stage }) => {
+				updateProgress(progress, stage);
 			});
-
-			const leftEye = resized.landmarks.positions[36];
-			const rightEye = resized.landmarks.positions[45];
-			const nose = resized.landmarks.positions[30];
-			const leftCheekPoint = {
-				x: (leftEye.x + nose.x) / 2,
-				y: (leftEye.y + nose.y) / 2 + imageHeight * 0.03
-			};
-			const rightCheekPoint = {
-				x: (rightEye.x + nose.x) / 2,
-				y: (rightEye.y + nose.y) / 2 + imageHeight * 0.03
-			};
-
-			const canvas = document.createElement('canvas');
-			canvas.width = imageWidth;
-			canvas.height = imageHeight;
-			const ctx = canvas.getContext('2d');
-			if (!ctx) {
-				throw new Error('Could not read the uploaded image.');
-			}
-
-			ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
-			updateProgress(70, 'Sampling skin tone...');
-
-			const sampleRadius = Math.max(4, Math.round(imageWidth * 0.01));
-			const leftSample = sampleMedianRgb(ctx, leftCheekPoint, sampleRadius);
-			const rightSample = sampleMedianRgb(ctx, rightCheekPoint, sampleRadius);
-			const samples = [leftSample, rightSample].filter(Boolean) as [number, number, number][];
-
-			if (!samples.length) {
-				throw new Error('Could not sample skin tone clearly. Try even lighting.');
-			}
-
-			const [r, g, b] = samples
-				.reduce(
-					(acc, current) => [acc[0] + current[0], acc[1] + current[1], acc[2] + current[2]],
-					[0, 0, 0]
-				)
-				.map((value) => Math.round(value / samples.length)) as [number, number, number];
 
 			updateProgress(90, 'Building your lipstick matches...');
 
-			sampledHex = rgbToHex(r, g, b);
-			detectedTone = getToneNameFromRGB(r, g, b);
-			detectedUndertone = getUndertone(r, g, b);
-			suggestedShades = getBestMatchedShades(r, g, b).slice(0, 3);
+			const profile = buildMatchProfile(rgb);
+			sampledHex = profile.sampledHex;
+			detectedTone = profile.detectedTone;
+			detectedUndertone = profile.detectedUndertone;
+			suggestedShades = profile.suggestedShades;
 
 			analysisProgress = 100;
 			analysisStage = 'Done';
@@ -314,7 +223,6 @@
 	function handleDragLeave() {
 		isDragActive = false;
 	}
-
 </script>
 
 <svelte:head>
@@ -381,138 +289,33 @@
 			</div>
 		</div>
 
-		<section class="analyzer" aria-labelledby="analyzer-title" id="uploader">
-		<div class="section-head uploader-head">
-			<h2 id="analyzer-title">Upload your selfie</h2>
-		</div>
-
-		{#if isModelLoading}
-			<p class="model-status">Loading AI model...</p>
-		{:else if modelLoadError}
-			<p class="error-message">{modelLoadError}</p>
-		{/if}
-
-		<div
-			class="drop-zone"
-			class:dragging={isDragActive}
-			on:dragover={handleDragOver}
-			on:dragleave={handleDragLeave}
-			on:drop={handleDrop}
-			on:click={openFileDialog}
-			on:keydown={onDropZoneKeydown}
-			role="button"
-			tabindex="0"
-		>
-			<p><strong>Drop your selfie here</strong> or click to browse</p>
-			<small>JPG, PNG, HEIC (best in even lighting)</small>
-			<input
-				bind:this={uploadInput}
-				type="file"
-				accept="image/*"
-				on:change={handleUpload}
-				disabled={isModelLoading}
-			/>
-		</div>
-
-		<p class="privacy-note">
-			Private: your photo never leaves your device. We do not store it anywhere or sell it to anyone.
-		</p>
-
-		<div class="upload-guidance" role="note" aria-label="Best results tips">
-			<p>For best accuracy:</p>
-			<ul>
-				<li>Use daylight or bright front lighting.</li>
-				<li>Avoid heavy filters and hard shadows.</li>
-				<li>Face the camera straight with both cheeks visible.</li>
-			</ul>
-		</div>
-
-		{#if isAnalyzing}
-			<div class="progress-wrap" role="status" aria-live="polite">
-				<div
-					class="progress-bar"
-					role="progressbar"
-					aria-valuemin="0"
-					aria-valuemax="100"
-					aria-valuenow={analysisProgress}
-				>
-					<span style={`width: ${analysisProgress}%`}></span>
-				</div>
-				<p>{analysisStage}</p>
-			</div>
-		{/if}
-
-		{#if analysisError}
-			<p class="error-message">{analysisError}</p>
-		{/if}
-
-		{#if imageUrl}
-			<div class="preview-card">
-				<img bind:this={imageElement} src={imageUrl} alt="Uploaded selfie preview" />
-			</div>
-		{/if}
-		</section>
+		<UploadAnalyzer
+			bind:uploadInput
+			bind:imageElement
+			{isModelLoading}
+			{modelLoadError}
+			{isAnalyzing}
+			{analysisError}
+			{analysisProgress}
+			{analysisStage}
+			{imageUrl}
+			{isDragActive}
+			on:selectfile={openFileDialog}
+			on:upload={(event) => handleUpload(event.detail)}
+			on:dropfile={(event) => handleDrop(event.detail)}
+			on:dragoverzone={(event) => handleDragOver(event.detail)}
+			on:dragleavezone={handleDragLeave}
+			on:keyactivate={(event) => onDropZoneKeydown(event.detail)}
+		/>
 	</header>
 
-	{#if sampledHex || detectedTone || detectedUndertone || suggestedShades.length > 0}
-		<section class="results" aria-labelledby="results-title">
-			<h2 id="results-title">Your match profile</h2>
-
-			<div class="metric-grid">
-				{#if sampledHex}
-					<div class="metric-card">
-						<h3>Sampled cheek color</h3>
-						<p>
-							<span class="color-dot" style={`background-color: ${sampledHex}`}></span>
-							{sampledHex}
-						</p>
-					</div>
-				{/if}
-
-				{#if detectedTone}
-					<div class="metric-card">
-						<h3>Detected tone</h3>
-						<p>{detectedTone}</p>
-					</div>
-				{/if}
-
-				{#if detectedUndertone}
-					<div class="metric-card">
-						<h3>Detected undertone</h3>
-						<p>{detectedUndertone}</p>
-					</div>
-				{/if}
-			</div>
-
-			{#if suggestedShades.length > 0}
-				<div class="shade-list-wrap">
-					<h3>Recommended shades</h3>
-					<p class="link-disclosure">Some product links below are paid links.</p>
-					<ul class="shade-list">
-						{#each suggestedShades as shade, index}
-							<li>
-								<a
-									href={shadeColors[shade]?.link}
-									target="_blank"
-									rel="noopener noreferrer"
-									on:click={() => trackAffiliateClick(shade, index + 1)}
-								>
-									<span class="swatch" style={`background-color: ${shadeColors[shade]?.hex ?? '#ccc'}`}></span>
-									<span class="shade-name">{shade}</span>
-									{#if index === 0}
-										<span class="best-badge">Best match</span>
-									{/if}
-									<span class="buy-label">View product <span class="paid-link">(paid link)</span></span>
-								</a>
-							</li>
-						{/each}
-					</ul>
-					<p class="open-note">Product links open in a new tab.</p>
-					<p class="amazon-disclosure">As an Amazon Associate I earn from qualifying purchases.</p>
-				</div>
-			{/if}
-		</section>
-	{/if}
+	<MatchResults
+		{sampledHex}
+		{detectedTone}
+		{detectedUndertone}
+		{suggestedShades}
+		on:affiliateclick={(event) => trackAffiliateClick(event.detail.shade, event.detail.position)}
+	/>
 
 	<section class="why-trust" aria-labelledby="why-trust-title">
 		<h2 id="why-trust-title">What makes the results feel polished</h2>
@@ -678,6 +481,12 @@
 		font-weight: 700;
 	}
 
+	h2 {
+		margin: 0;
+		font-size: 1.3rem;
+		color: #6e2e4d;
+	}
+
 	.hero-copy p {
 		margin: 0;
 		font-size: 1.05rem;
@@ -742,20 +551,7 @@
 		box-shadow: 0 8px 16px rgba(173, 74, 113, 0.14);
 	}
 
-	.analyzer,
-	.results,
-	.why-trust,
-	.content-boost,
-	.faq {
-		margin-top: 1.25rem;
-		padding: 1.2rem;
-		background: #fff;
-		border: 1px solid #efd8df;
-		border-radius: 18px;
-		box-shadow: 0 12px 26px rgba(102, 41, 66, 0.05);
-	}
-
-	.hero .analyzer {
+	.hero :global(.analyzer) {
 		margin-top: 1.1rem;
 	}
 
@@ -767,259 +563,15 @@
 		flex-wrap: wrap;
 	}
 
-	.uploader-head {
-		justify-content: center;
-		text-align: center;
-	}
-
-	h2 {
-		margin: 0;
-		font-size: 1.3rem;
-		color: #6e2e4d;
-	}
-
-	.drop-zone {
-		margin-top: 1rem;
-		border: 1.5px dashed #e8a8c1;
-		background: linear-gradient(150deg, #fff8fb 0%, #fff3f7 100%);
+	.why-trust,
+	.content-boost,
+	.faq {
+		margin-top: 1.25rem;
 		padding: 1.2rem;
-		border-radius: 14px;
-		cursor: pointer;
-		text-align: center;
-		transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
-	}
-
-	.drop-zone:hover,
-	.drop-zone.dragging {
-		transform: translateY(-2px);
-		box-shadow: 0 12px 22px rgba(184, 85, 125, 0.12);
-		border-color: #d7739e;
-	}
-
-	.drop-zone p {
-		margin: 0;
-		color: #7d3152;
-	}
-
-	.drop-zone small {
-		display: block;
-		margin-top: 0.3rem;
-		color: #8a6878;
-	}
-
-	.drop-zone input[type='file'] {
-		display: none;
-	}
-
-	.privacy-note {
-		margin: 0.65rem 0 0;
-		font-size: 0.87rem;
-		color: #826876;
-		text-align: center;
-	}
-
-	.model-status {
-		margin: 0.9rem 0;
-		font-weight: 600;
-		color: #725260;
-		text-align: center;
-	}
-
-	.upload-guidance {
-		margin-top: 1rem;
-		padding: 0.9rem 1rem;
-		background: #fff5f9;
-		border: 1px solid #efcddd;
-		border-radius: 12px;
-	}
-
-	.upload-guidance p {
-		margin: 0 0 0.4rem;
-		font-weight: 700;
-	}
-
-	.upload-guidance ul {
-		margin: 0;
-		padding-left: 1.1rem;
-	}
-
-	.upload-guidance li {
-		margin: 0.25rem 0;
-		color: #5a5561;
-	}
-
-	.progress-wrap {
-		margin-top: 1rem;
-	}
-
-	.progress-wrap p {
-		margin: 0.5rem 0 0;
-		font-size: 0.9rem;
-		font-weight: 600;
-		color: #6d5965;
-	}
-
-	.progress-bar {
-		width: 100%;
-		height: 10px;
-		border-radius: 999px;
-		background: #f4d9e3;
-		overflow: hidden;
-	}
-
-	.progress-bar span {
-		display: block;
-		height: 100%;
-		background: linear-gradient(90deg, #f7a8b8 0%, #e77aa6 60%, #d46794 100%);
-		transition: width 160ms ease-out;
-	}
-
-	.error-message {
-		margin-top: 0.9rem;
-		padding: 0.75rem 0.9rem;
-		background: #fff2f4;
-		border: 1px solid #efc8d5;
-		color: #9f2f4f;
-		border-radius: 10px;
-		font-weight: 600;
-	}
-
-	.preview-card {
-		margin-top: 1rem;
-		border-radius: 14px;
-		overflow: hidden;
-		border: 1px solid #ecd1da;
-		background: #fff8fa;
-	}
-
-	.preview-card img {
-		display: block;
-		width: 100%;
-		height: auto;
-		max-height: 420px;
-		object-fit: contain;
-	}
-
-	.metric-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-		gap: 0.8rem;
-		margin-top: 1rem;
-	}
-
-	.metric-card {
-		padding: 0.9rem;
-		border-radius: 12px;
-		background: #fff6fa;
-		border: 1px solid #efcfdd;
-	}
-
-	.metric-card h3 {
-		margin: 0;
-		font-size: 0.86rem;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		color: #9a5876;
-	}
-
-	.metric-card p {
-		margin: 0.55rem 0 0;
-		font-weight: 700;
-		font-size: 1.06rem;
-		color: #6a2d48;
-		text-transform: capitalize;
-	}
-
-	.color-dot,
-	.swatch {
-		display: inline-block;
-		width: 1rem;
-		height: 1rem;
-		border-radius: 50%;
-		border: 1px solid #edd9e0;
-		vertical-align: middle;
-		margin-right: 0.45rem;
-	}
-
-	.shade-list-wrap {
-		margin-top: 1rem;
-	}
-
-	.shade-list-wrap h3 {
-		margin: 0 0 0.65rem;
-		color: #6f2e4e;
-	}
-
-	.link-disclosure {
-		margin: 0 0 0.65rem;
-		font-size: 0.84rem;
-		color: #7d6270;
-	}
-
-	.shade-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		gap: 0.55rem;
-	}
-
-	.shade-list a {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.7rem;
-		padding: 0.75rem 0.9rem;
-		border-radius: 11px;
-		text-decoration: none;
-		border: 1px solid #edd1de;
 		background: #fff;
-		color: #6a2d48;
-		transition: transform 140ms ease, box-shadow 140ms ease;
-	}
-
-	.shade-list a:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 10px 20px rgba(172, 78, 116, 0.11);
-	}
-
-	.shade-name {
-		font-weight: 700;
-		text-transform: capitalize;
-		flex: 1;
-	}
-
-	.best-badge {
-		font-size: 0.68rem;
-		font-weight: 800;
-		padding: 0.2rem 0.42rem;
-		border-radius: 999px;
-		background: #fde9f1;
-		color: #a03d67;
-		white-space: nowrap;
-	}
-
-	.buy-label {
-		font-size: 0.8rem;
-		font-weight: 700;
-		color: #91526d;
-	}
-
-	.paid-link {
-		font-weight: 600;
-		color: #9c6b82;
-	}
-
-	.amazon-disclosure {
-		margin: 0.6rem 0 0;
-		font-size: 0.82rem;
-		color: #816572;
-	}
-
-	.open-note {
-		margin: 0.55rem 0 0;
-		font-size: 0.78rem;
-		color: #8b6f7d;
+		border: 1px solid #efd8df;
+		border-radius: 18px;
+		box-shadow: 0 12px 26px rgba(102, 41, 66, 0.05);
 	}
 
 	.trust-grid {
@@ -1148,8 +700,6 @@
 		}
 
 		.hero,
-		.analyzer,
-		.results,
 		.why-trust,
 		.content-boost,
 		.faq {

@@ -34,6 +34,8 @@ export function rgbToHsl(r: number, g: number, b: number): [number, number, numb
 	return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
 }
 
+export type Undertone = 'cool' | 'warm' | 'neutral';
+
 export function matchLipstickShade(hex: string): string[] {
 	const shades: Record<string, string[]> = {
 		light: ['soft pink', 'coral', 'peach'],
@@ -51,40 +53,21 @@ export function matchLipstickShade(hex: string): string[] {
 	return shades.dark;
 }
 
-const toneNameMap: Record<number, string> = {
-	1: 'fair cool',
-	2: 'fair neutral',
-	3: 'fair warm',
-	4: 'light cool',
-	5: 'light neutral',
-	6: 'light warm',
-	7: 'medium cool',
-	8: 'medium neutral',
-	9: 'medium warm',
-	10: 'tan cool',
-	11: 'tan neutral',
-	12: 'tan warm',
-	13: 'tan warm',
-	14: 'deep cool',
-	15: 'deep neutral',
-	16: 'deep warm',
-	17: 'deep warm',
-	18: 'deep neutral',
-	19: 'deep cool',
-	20: 'deep cool'
-};
+function getDepthNameFromRGB(r: number, g: number, b: number): 'fair' | 'light' | 'medium' | 'tan' | 'deep' {
+	const [, , hslLightness] = rgbToHsl(r, g, b);
+	const perceivedBrightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255 * 100;
+	const depthScore = (hslLightness + perceivedBrightness) / 2;
 
-function getToneIndexFromRGB(r: number, g: number, b: number): number {
-	const [, , l] = rgbToHsl(r, g, b);
-	const invertedL = 100 - l;
-	const toneIndex = Math.floor((invertedL / 100) * 20);
-	return Math.max(0, Math.min(19, toneIndex));
+	if (depthScore >= 78) return 'fair';
+	if (depthScore >= 60) return 'light';
+	if (depthScore >= 46) return 'medium';
+	if (depthScore >= 32) return 'tan';
+	return 'deep';
 }
 
 
 export function matchLipstickShadeByTone(r: number, g: number, b: number): string[] {
-	const toneIndex = getToneIndexFromRGB(r, g, b);
-	const toneName = toneNameMap[toneIndex + 1];
+	const toneName = getToneNameFromRGB(r, g, b);
 
 	const toneMap: Record<string, string[]> = {
 		'fair cool': ['ice pink', 'frosty rose', 'cloudberry', 'rosebud'],
@@ -109,7 +92,6 @@ export function matchLipstickShadeByTone(r: number, g: number, b: number): strin
 
 export function matchLipstickByUndertone(r: number, g: number, b: number): string[] {
 	const undertone = getUndertone(r, g, b);
-	console.log('Detected undertone:', undertone);
 
 	const shadeMap = {
 		cool: ['plum', 'rosebud', 'moody plum'],
@@ -173,12 +155,13 @@ export function getShadeDescriptions(shades: string[]): string[] {
 
 
 export function getToneNameFromRGB(r: number, g: number, b: number): string {
-	const toneIndex = getToneIndexFromRGB(r, g, b);
-	return toneNameMap[toneIndex + 1] ?? `Tone ${toneIndex + 1}`;
+	const depth = getDepthNameFromRGB(r, g, b);
+	const undertone = getUndertone(r, g, b);
+	return `${depth} ${undertone}`;
 }
 
 
-export function getUndertone(r: number, g: number, b: number): 'cool' | 'warm' | 'neutral' {
+export function getUndertone(r: number, g: number, b: number): Undertone {
 	const [h, s, l] = rgbToHsl(r, g, b);
 
 	if (s < 20) {
