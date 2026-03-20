@@ -65,9 +65,21 @@ function getDepthNameFromRGB(r: number, g: number, b: number): 'fair' | 'light' 
 	return 'deep';
 }
 
+function getToneShadeKeyFromRGB(r: number, g: number, b: number): string {
+	const depth = getDepthNameFromRGB(r, g, b);
+	const undertone = getUndertone(r, g, b);
+	return `${depth} ${undertone}`;
+}
+
+function getToneVariantNumber(undertone: Undertone): 1 | 2 | 3 {
+	if (undertone === 'cool') return 1;
+	if (undertone === 'neutral') return 2;
+	return 3;
+}
+
 
 export function matchLipstickShadeByTone(r: number, g: number, b: number): string[] {
-	const toneName = getToneNameFromRGB(r, g, b);
+	const toneName = getToneShadeKeyFromRGB(r, g, b);
 
 	const toneMap: Record<string, string[]> = {
 		'fair cool': ['ice pink', 'frosty rose', 'cloudberry', 'rosebud'],
@@ -157,7 +169,8 @@ export function getShadeDescriptions(shades: string[]): string[] {
 export function getToneNameFromRGB(r: number, g: number, b: number): string {
 	const depth = getDepthNameFromRGB(r, g, b);
 	const undertone = getUndertone(r, g, b);
-	return `${depth} ${undertone}`;
+	const toneNumber = getToneVariantNumber(undertone);
+	return `${depth.charAt(0).toUpperCase()}${depth.slice(1)} ${toneNumber}`;
 }
 
 

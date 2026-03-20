@@ -17,7 +17,7 @@ describe('colorUtils', () => {
 	});
 
 	it('maps brighter skin samples into a light tone bucket', () => {
-		expect(getToneNameFromRGB(186, 140, 134)).toBe('light warm');
+		expect(getToneNameFromRGB(186, 140, 134)).toBe('Light 3');
 	});
 
 	it('detects neutral undertones for low-saturation samples', () => {
