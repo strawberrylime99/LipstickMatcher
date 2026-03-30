@@ -7,7 +7,7 @@ describe('buildMatchProfile', () => {
 			sampledHex: '#ba8c86',
 			detectedTone: 'Light 3',
 			detectedUndertone: 'warm',
-			suggestedShades: ['berry blush', 'rust', 'deep rose']
+			suggestedShades: ['rust', 'deep rose', 'berry blush']
 		});
 	});
 });

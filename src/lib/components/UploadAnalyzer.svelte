@@ -16,17 +16,17 @@
 	export let analysisError: string | null = null;
 	export let analysisProgress = 0;
 	export let analysisStage = 'Preparing image...';
-	export let imageUrl: string | null = null;
+	export let previewUrls: string[] = [];
 	export let uploadInput: HTMLInputElement | null = null;
-	export let imageElement: HTMLImageElement | null = null;
 	export let isDragActive = false;
+	export let maxUploads = 3;
 
 	const dispatch = createEventDispatcher<AnalyzerEvents>();
 </script>
 
 <section class="analyzer" aria-labelledby="analyzer-title" id="uploader">
 	<div class="section-head uploader-head">
-		<h2 id="analyzer-title">Upload your selfie</h2>
+		<h2 id="analyzer-title">Upload your selfies</h2>
 	</div>
 
 	{#if isModelLoading}
@@ -46,12 +46,13 @@
 		role="button"
 		tabindex="0"
 	>
-		<p><strong>Drop your selfie here</strong> or click to browse</p>
+		<p><strong>Drop up to {maxUploads} selfies here</strong> or click to browse</p>
 		<small>JPG, PNG, HEIC (best in even lighting)</small>
 		<input
 			bind:this={uploadInput}
 			type="file"
 			accept="image/*"
+			multiple
 			on:change={(event) => dispatch('upload', event)}
 			disabled={isModelLoading}
 		/>
@@ -64,8 +65,8 @@
 	<div class="upload-guidance" role="note" aria-label="Best results tips">
 		<p>For best accuracy:</p>
 		<ul>
-			<li>Use daylight or bright front lighting.</li>
-			<li>Avoid heavy filters and hard shadows.</li>
+			<li>Upload one to three photos in similar daylight or bright front lighting.</li>
+			<li>Avoid heavy filters, strong shadows, and extreme white balance shifts.</li>
 			<li>Face the camera straight with both cheeks visible.</li>
 		</ul>
 	</div>
@@ -89,15 +90,24 @@
 		<p class="error-message">{analysisError}</p>
 	{/if}
 
-	{#if imageUrl}
-		<div class="preview-card">
-			<img bind:this={imageElement} src={imageUrl} alt="Uploaded selfie preview" />
+	{#if previewUrls.length}
+		<div class="preview-wrap">
+			<div class="preview-head">
+				<h3>Photo set</h3>
+				<p>{previewUrls.length} selected</p>
+			</div>
+			<div class="preview-grid">
+				{#each previewUrls as previewUrl, index}
+					<div class="preview-card">
+						<img src={previewUrl} alt={`Uploaded selfie preview ${index + 1}`} />
+					</div>
+				{/each}
+			</div>
 		</div>
 	{/if}
 </section>
 
 <style>
-	/* Keep upload flow styling isolated from the rest of the homepage. */
 	.analyzer {
 		margin-top: 1.25rem;
 		padding: 1.2rem;
@@ -232,8 +242,31 @@
 		font-weight: 600;
 	}
 
-	.preview-card {
+	.preview-wrap {
 		margin-top: 1rem;
+	}
+
+	.preview-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 0.65rem;
+	}
+
+	.preview-head h3,
+	.preview-head p {
+		margin: 0;
+		color: #6a2d48;
+	}
+
+	.preview-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+		gap: 0.7rem;
+	}
+
+	.preview-card {
 		border-radius: 14px;
 		overflow: hidden;
 		border: 1px solid #ecd1da;
@@ -243,9 +276,8 @@
 	.preview-card img {
 		display: block;
 		width: 100%;
-		height: auto;
-		max-height: 420px;
-		object-fit: contain;
+		height: 180px;
+		object-fit: cover;
 	}
 
 	@media (max-width: 720px) {

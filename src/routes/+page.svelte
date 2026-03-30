@@ -1,23 +1,28 @@
 <script lang="ts">
-	import { onDestroy, onMount, tick } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { injectAnalytics, track } from '@vercel/analytics/sveltekit';
 	import UploadAnalyzer from '$lib/components/UploadAnalyzer.svelte';
 	import MatchResults from '$lib/components/MatchResults.svelte';
 	import { loadFaceApiModels } from '$lib/analysis/faceModel';
 	import { analyzeSelfieImage } from '$lib/analysis/analyzeSelfie';
-	import type { FaceApiModule } from '$lib/analysis/types';
+	import { aggregateRgbSamples } from '$lib/analysis/aggregateSamples';
+	import type { FaceApiModule, RgbSample } from '$lib/analysis/types';
 	import { buildMatchProfile } from '$lib/recommendations/buildMatchProfile';
+	import type { ShadeCatalogEntry } from '$lib/catalog/shades';
 	import { posts } from './blog/_posts';
 
 	injectAnalytics();
 
 	type UploadSource = 'file_picker' | 'drop_zone';
 
-	let imageUrl: string | null = null;
-	let imageElement: HTMLImageElement | null = null;
+	export let data: {
+		shadeCatalog: Record<string, ShadeCatalogEntry>;
+	};
+
 	let faceapi: FaceApiModule | null = null;
 	let uploadInput: HTMLInputElement | null = null;
 
+	let previewUrls: string[] = [];
 	let sampledHex: string | null = null;
 	let suggestedShades: string[] = [];
 	let detectedTone: string | null = null;
@@ -32,6 +37,7 @@
 	let isDragActive = false;
 	let progressInterval: ReturnType<typeof setInterval> | null = null;
 
+	const MAX_UPLOADS = 3;
 	const siteUrl = 'https://lipstickmatcher.com';
 	const latestPosts = [...posts]
 		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -83,16 +89,15 @@
 		});
 	}
 
-	// Keep progress state updates in one place for the page-level workflow.
 	function startProgress() {
 		analysisProgress = 10;
 		analysisStage = 'Preparing image...';
 		if (progressInterval) clearInterval(progressInterval);
 		progressInterval = setInterval(() => {
-			if (analysisProgress < 88) {
+			if (analysisProgress < 92) {
 				analysisProgress += 1;
 			}
-		}, 140);
+		}, 150);
 	}
 
 	function updateProgress(progress: number, stage: string) {
@@ -126,6 +131,129 @@
 		}
 	}
 
+	function createImageElement(imageDataUrl: string): Promise<HTMLImageElement> {
+		return new Promise((resolve, reject) => {
+			const image = new Image();
+			image.onload = () => resolve(image);
+			image.onerror = () => reject(new Error('Could not prepare one of the uploaded photos.'));
+			image.src = imageDataUrl;
+		});
+	}
+
+	async function readFilesAsDataUrls(files: File[]): Promise<string[]> {
+		return Promise.all(
+			files.map(
+				(file) =>
+					new Promise<string>((resolve, reject) => {
+						const reader = new FileReader();
+						reader.onload = (event) => resolve((event.target?.result as string) ?? '');
+						reader.onerror = () => reject(new Error('Could not read uploaded file.'));
+						reader.readAsDataURL(file);
+					})
+			)
+		);
+	}
+
+	async function analyzeImages(imageDataUrls: string[], source: UploadSource) {
+		isAnalyzing = true;
+		resetResults();
+		startProgress();
+		track('upload_started', { source, imageCount: imageDataUrls.length });
+
+		try {
+			if (!faceapi) {
+				throw new Error('Model is still loading. Try again in a moment.');
+			}
+
+			previewUrls = imageDataUrls;
+			const rgbSamples: RgbSample[] = [];
+
+			for (const [index, imageDataUrl] of imageDataUrls.entries()) {
+				const imageElement = await createImageElement(imageDataUrl);
+				const progressBase = Math.round((index / imageDataUrls.length) * 72);
+				const progressSpan = Math.max(18, Math.round(72 / imageDataUrls.length));
+
+				updateProgress(
+					18 + progressBase,
+					`Analyzing photo ${index + 1} of ${imageDataUrls.length}...`
+				);
+
+				const { rgb } = await analyzeSelfieImage(imageElement, faceapi, ({ progress, stage }) => {
+					const scaledProgress = 18 + progressBase + Math.round((progress / 100) * progressSpan);
+					updateProgress(
+						scaledProgress,
+						`${stage} (${index + 1}/${imageDataUrls.length})`
+					);
+				});
+
+				rgbSamples.push(rgb);
+			}
+
+			const aggregatedRgb = aggregateRgbSamples(rgbSamples);
+			if (!aggregatedRgb) {
+				throw new Error('Could not sample skin tone clearly. Try even lighting.');
+			}
+
+			updateProgress(94, 'Building your lipstick matches...');
+
+			const profile = buildMatchProfile(aggregatedRgb);
+			sampledHex = profile.sampledHex;
+			detectedTone = profile.detectedTone;
+			detectedUndertone = profile.detectedUndertone;
+			suggestedShades = profile.suggestedShades;
+
+			analysisProgress = 100;
+			analysisStage = 'Done';
+			track('analysis_complete', {
+				source,
+				detectedTone,
+				detectedUndertone,
+				shadeCount: suggestedShades.length,
+				imageCount: imageDataUrls.length
+			});
+		} catch (error) {
+			analysisError = error instanceof Error ? error.message : 'Could not process this photo.';
+			track('analysis_error', {
+				source,
+				message: analysisError
+			});
+		} finally {
+			stopProgress();
+			isAnalyzing = false;
+		}
+	}
+
+	async function handleFiles(fileList: FileList | File[], source: UploadSource) {
+		const files = Array.from(fileList).slice(0, MAX_UPLOADS);
+		if (!files.length) return;
+
+		const imageDataUrls = await readFilesAsDataUrls(files);
+		await analyzeImages(imageDataUrls, source);
+	}
+
+	async function handleUpload(event: Event) {
+		const files = (event.target as HTMLInputElement)?.files;
+		if (!files?.length) return;
+		await handleFiles(files, 'file_picker');
+	}
+
+	async function handleDrop(event: DragEvent) {
+		event.preventDefault();
+		isDragActive = false;
+		const files = event.dataTransfer?.files;
+		if (!files?.length) return;
+		await handleFiles(files, 'drop_zone');
+	}
+
+	function handleDragOver(event: DragEvent) {
+		event.preventDefault();
+		isDragActive = true;
+	}
+
+	function handleDragLeave() {
+		isDragActive = false;
+	}
+
 	onMount(async () => {
 		try {
 			if (typeof window === 'undefined') return;
@@ -141,95 +269,13 @@
 	onDestroy(() => {
 		stopProgress();
 	});
-
-	// The page now orchestrates analysis while shared modules handle the heavy lifting.
-	async function analyzeImage(imageDataUrl: string, source: UploadSource) {
-		isAnalyzing = true;
-		resetResults();
-		startProgress();
-		track('upload_started', { source });
-
-		try {
-			imageUrl = imageDataUrl;
-			await tick();
-			updateProgress(30, 'Checking photo quality...');
-
-			if (!imageElement || !faceapi) {
-				throw new Error('Model is still loading. Try again in a moment.');
-			}
-
-			const { rgb } = await analyzeSelfieImage(imageElement, faceapi, ({ progress, stage }) => {
-				updateProgress(progress, stage);
-			});
-
-			updateProgress(90, 'Building your lipstick matches...');
-
-			const profile = buildMatchProfile(rgb);
-			sampledHex = profile.sampledHex;
-			detectedTone = profile.detectedTone;
-			detectedUndertone = profile.detectedUndertone;
-			suggestedShades = profile.suggestedShades;
-
-			analysisProgress = 100;
-			analysisStage = 'Done';
-			track('analysis_complete', {
-				source,
-				detectedTone,
-				detectedUndertone,
-				shadeCount: suggestedShades.length
-			});
-		} catch (error) {
-			analysisError = error instanceof Error ? error.message : 'Could not process this photo.';
-			track('analysis_error', {
-				source,
-				message: analysisError
-			});
-		} finally {
-			stopProgress();
-			isAnalyzing = false;
-		}
-	}
-
-	async function handleFile(file: File, source: UploadSource) {
-		const imageDataUrl = await new Promise<string>((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = (e) => resolve((e.target?.result as string) ?? '');
-			reader.onerror = () => reject(new Error('Could not read uploaded file.'));
-			reader.readAsDataURL(file);
-		});
-
-		await analyzeImage(imageDataUrl, source);
-	}
-
-	async function handleUpload(event: Event) {
-		const file = (event.target as HTMLInputElement)?.files?.[0];
-		if (!file) return;
-		await handleFile(file, 'file_picker');
-	}
-
-	async function handleDrop(event: DragEvent) {
-		event.preventDefault();
-		isDragActive = false;
-		const file = event.dataTransfer?.files?.[0];
-		if (!file) return;
-		await handleFile(file, 'drop_zone');
-	}
-
-	function handleDragOver(event: DragEvent) {
-		event.preventDefault();
-		isDragActive = true;
-	}
-
-	function handleDragLeave() {
-		isDragActive = false;
-	}
 </script>
 
 <svelte:head>
 	<title>AI Lipstick Matcher | Find Your Best Lip Color in Seconds</title>
 	<meta
 		name="description"
-		content="Upload one selfie to get lipstick shade matches based on your skin tone and undertone. Fast, private, and free lipstick recommendations."
+		content="Upload one to three selfies to get lipstick shade matches based on your skin tone and undertone. Fast, private, and free lipstick recommendations."
 	/>
 	<meta
 		name="keywords"
@@ -243,7 +289,7 @@
 	<meta property="og:title" content="AI Lipstick Matcher | Find Your Best Lip Color in Seconds" />
 	<meta
 		property="og:description"
-		content="Get lipstick shade recommendations from your selfie using skin tone and undertone analysis."
+		content="Get lipstick shade recommendations from one or more selfies using skin tone and undertone analysis."
 	/>
 	<meta property="og:image" content="https://lipstickmatcher.com/logo.png" />
 	<meta property="og:url" content="https://lipstickmatcher.com/" />
@@ -253,7 +299,7 @@
 	<meta name="twitter:title" content="AI Lipstick Matcher | Find Your Best Lip Color in Seconds" />
 	<meta
 		name="twitter:description"
-		content="Find lipstick shades that fit your tone and undertone from a single selfie."
+		content="Find lipstick shades that fit your tone and undertone from one to three selfies."
 	/>
 	<meta name="twitter:image" content="https://lipstickmatcher.com/logo.png" />
 
@@ -278,12 +324,12 @@
 				<p class="eyebrow">PERSONALIZED BEAUTY MATCHING</p>
 				<h1>Find lipstick shades that look right on you</h1>
 				<p>
-					Upload a clear selfie and get your best matches in under a minute. No signup, no app install,
-					no guesswork.
+					Upload one to three clear selfies and get your best matches in under a minute. No
+					signup, no app install, no guesswork.
 				</p>
 				<div class="hero-actions">
 					<button class="cta-primary cta-upload" on:click={openFileDialog} disabled={isModelLoading}>
-						Upload selfie
+						Upload selfies
 					</button>
 				</div>
 			</div>
@@ -291,15 +337,15 @@
 
 		<UploadAnalyzer
 			bind:uploadInput
-			bind:imageElement
 			{isModelLoading}
 			{modelLoadError}
 			{isAnalyzing}
 			{analysisError}
 			{analysisProgress}
 			{analysisStage}
-			{imageUrl}
+			{previewUrls}
 			{isDragActive}
+			maxUploads={MAX_UPLOADS}
 			on:selectfile={openFileDialog}
 			on:upload={(event) => handleUpload(event.detail)}
 			on:dropfile={(event) => handleDrop(event.detail)}
@@ -314,6 +360,7 @@
 		{detectedTone}
 		{detectedUndertone}
 		{suggestedShades}
+		shadeCatalog={data.shadeCatalog}
 		on:affiliateclick={(event) => trackAffiliateClick(event.detail.shade, event.detail.position)}
 	/>
 
@@ -329,8 +376,8 @@
 				<p>Recommendations are curated to be practical, not generic color labels.</p>
 			</article>
 			<article>
-				<h3><span class="mini-swatch" style="background:#d2749a"></span>Quick comparison flow</h3>
-				<p>Fast processing makes it easy to test multiple photos and compare outcomes.</p>
+				<h3><span class="mini-swatch" style="background:#d2749a"></span>Multi-photo stability</h3>
+				<p>Using up to three selfies helps smooth out one-off lighting shifts and noisy samples.</p>
 			</article>
 		</div>
 	</section>

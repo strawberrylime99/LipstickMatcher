@@ -9,7 +9,7 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'cloudberry': {
 		hex: '#eab3cb',
-		link: 'https://www.amazon.com/YENSA-Lipstick-Semi-Glossy-Pigmentation-Long-Lasting/dp/B0BZX26NBR/ref=sr_1_11_sspa?crid=WPAPDB55W7D6&dib=eyJ2IjoiMSJ9.HCaHSUFgR6QuecxbT9KE04eNWJjZtLSVVAPxPjfBjDHoi0Mq0e_-3nz3TzhepsSMfup_ZslRWnw0taoZiirN06BL4EfV_IyuMWJtJfNJPj2QkwluH5cw7ANAiTQq0zMBOBdJYHly_O7Sv9UivP4Y75sYJcG5ph_1QHYXM1sZDIp1O0T-8lhTttR5OM9K8Slw3HpYfwFSIWJ-x56ZkpmJ95eXQ97v51d-3rD9zJUNCbLqWWWSbuvlfxMIrEzIfegJNffP-_tq2rEmi_YdcpKzV2fkX7PB7F1nRGqAuDzBdiE.SQPZrW0CAzzbuyG-iGsxnrTEs_adlSKaI_PzuDTWV5k&dib_tag=se&keywords=orange%2Blipstick&qid=1744951557&refinements=p_36%3A1200-&rnid=386662011&sprefix=orange%2Blipstick%2Caps%2C78&sr=8-11-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9tdGY&th=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/LPaige-Designer-All-Natural-Long-lasting-Moisturizing/dp/B073HK7G5V?tag=lipstickmatch-20'
 	},
 	'rosebud': {
 		hex: '#f4c2c2',
@@ -29,7 +29,7 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'warm peach': {
 		hex: '#fbb982',
-		link: 'https://www.amazon.com/Anastasia-Beverly-Hills-Satin-Lipstick/dp/B09RTPY4ZY/ref=sr_1_5?crid=1RMJSN4NUZB6X&dib=eyJ2IjoiMSJ9.bF9hpFm0wKGFUgU0y6EQJtxFvWUI3p018jIGcxvnQhrKK7vL7E_LBJyG6gJGlRNRSKxUHFlXS8m2Ft0G7CVfdInnOUAKeRd8F0TycLMTU26RVhzHB9X6RSPx17-5p7iIYlle8Nx2nxGqIKRDVbX7ObxXLU5eEXJ2Mppf6STew58hkRU3HA92MKst0wi_jYepPajm792zPiWeFiEjwhNwaN9-2XyQ3Hb2kNa3nIOzSsNiLI6H5ScltT_DFIJAL3LOwNvNkd7deNbGj4Ur3i5S8wWCgY5pRg5P7qCSe4d_IZ8.MOO0sENo8hQNSIw34bSRjWNtxPxb33sw3amk2LLzbxQ&dib_tag=se&keywords=warm%2Bpeach%2Blipstick&qid=1744951953&sprefix=warm%2Bpeach%2B%2Caps%2C129&sr=8-5&th=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/Anastasia-Beverly-Hills-Satin-Lipstick/dp/B09RTPY4ZY?tag=lipstickmatch-20'
 	},
 	'soft bronze': {
 		hex: '#d58f6f',
@@ -53,7 +53,7 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'rich coral': {
 		hex: '#de5d83',
-		link: 'https://www.amazon.com/LPaige-Designer-All-Natural-Long-lasting-Moisturizing/dp/B073G5NTJS/ref=sr_1_3_sspa?crid=2PPOEF1BQZV0A&dib=eyJ2IjoiMSJ9.HCaHSUFgR6QuecxbT9KE04eNWJjZtLSVVAPxPjfBjDGPctqpuiq0kTkEg3NCEmDu5aIq79oGUrKxrWICbZqjJdSYwJwCrjY9jLSL0dT1gL2PvMIs-cpM4KDSx4Tvgre1xHUEwliDlSoop186AhUpdgh4nAz4tgPD_IMG-jttjlZPDQRp7fmAldNVKeoHmYSRi--Jo8YPWxvJF2EaFOy2XHkLhVtf_zOazYXUPvoGWHzzCCaDnpq6TWweveb92Z3AYslnPP6rAvnUMlp43woMOVEHBw0yq-k0HtTIPwHXK5U.CoD0B9yjkrr5FZYW5Fgcha7Hzj183ASB74DzG14-ftA&dib_tag=se&keywords=orange%2Blipstick&qid=1744952163&refinements=p_36%3A1100-&rnid=386662011&sprefix=orange%2Blipstick%2Caps%2C87&sr=8-3-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/Anastasia-Beverly-Hills-Satin-Lipstick/dp/B09RTPY4ZY?tag=lipstickmatch-20'
 	},
 	'mocha': {
 		hex: '#3e2723',
@@ -89,7 +89,7 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'dark nude': {
 		hex: '#a47149',
-		link: 'https://www.amazon.com/Gerard-Cosmetics-Stick-Buttercup-Lipstick/dp/B00TR77YZG/ref=sr_1_2_sspa?crid=1F9UV1B87JQF1&dib=eyJ2IjoiMSJ9.Yeuj2VZ61Lsqv-jdEoGEwsDQEuoi9er_911KqD4l8GP9SquxNtCEA31Pc543vmZDmi1YyX3B6kim5y9ihVOiS8m-v_gATC1zMRAgetZqEoH0SAmpW222BqxfccCrkah448kX9Jk-4q3joceWBcA7IKdCsUAZEthYsepsaaQHsDLVba1MuwlZOWaJZCY7G_rx7HOCCCQR0lUaz11C_2ZC8FZIfhLEKZu__xjB8xZgeVSqYnqx2x3MaQhmw_9lPcsYsNPEaGpEC4g49F-O3kaGCXi_FlonxE9k6J-yNfBtquw.Rb1jxzdZ5xEGod8nS19PPcTaC1q35Ntre9CPdCkj5co&dib_tag=se&keywords=dark+nude+lipstick&qid=1744951482&refinements=p_36%3A1600-&rnid=386662011&sprefix=dark+nude+lipstick%2Caps%2C77&sr=8-2-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/Urban-Decay-Vice-Lipstick-Long-Lasting/dp/B095W436Y3?tag=lipstickmatch-20'
 	},
 	'currant': {
 		hex: '#722f37',
@@ -141,7 +141,7 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'mahogany': {
 		hex: '#4a0100',
-		link: 'https://www.amazon.com/YENSA-Lipstick-Semi-Glossy-Pigmentation-Long-Lasting/dp/B0BZX26NBR/ref=sr_1_11_sspa?crid=WPAPDB55W7D6&dib=eyJ2IjoiMSJ9.HCaHSUFgR6QuecxbT9KE04eNWJjZtLSVVAPxPjfBjDHoi0Mq0e_-3nz3TzhepsSMfup_ZslRWnw0taoZiirN06BL4EfV_IyuMWJtJfNJPj2QkwluH5cw7ANAiTQq0zMBOBdJYHly_O7Sv9UivP4Y75sYJcG5ph_1QHYXM1sZDIp1O0T-8lhTttR5OM9K8Slw3HpYfwFSIWJ-x56ZkpmJ95eXQ97v51d-3rD9zJUNCbLqWWWSbuvlfxMIrEzIfegJNffP-_tq2rEmi_YdcpKzV2fkX7PB7F1nRGqAuDzBdiE.SQPZrW0CAzzbuyG-iGsxnrTEs_adlSKaI_PzuDTWV5k&dib_tag=se&keywords=orange%2Blipstick&qid=1744951557&refinements=p_36%3A1200-&rnid=386662011&sprefix=orange%2Blipstick%2Caps%2C78&sr=8-11-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9tdGY&th=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/Runway-Rogue-Lipstick-Moisturizing-Midnight/dp/B0B1KGSDXZ?tag=lipstickmatch-20'
 	},
 	'oxblood': {
 		hex: '#460c0f',

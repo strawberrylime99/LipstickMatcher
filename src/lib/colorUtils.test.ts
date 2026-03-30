@@ -26,6 +26,6 @@ describe('colorUtils', () => {
 
 	it('returns a stable list of three recommended shades', () => {
 		expect(getBestMatchedShades(186, 140, 134)).toHaveLength(3);
-		expect(getBestMatchedShades(186, 140, 134)).toEqual(['berry blush', 'rust', 'deep rose']);
+		expect(getBestMatchedShades(186, 140, 134)).toEqual(['rust', 'deep rose', 'berry blush']);
 	});
 });

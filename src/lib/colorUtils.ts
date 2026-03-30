@@ -1,13 +1,36 @@
+import { shadeCatalog } from '$lib/catalog/shades';
+import {
+	TONE_SHADE_MAP,
+	UNDERTONE_SHADE_MAP,
+	type ShadeDepth,
+	type ShadeUndertone
+} from '$lib/recommendations/shadeRules';
+
+export type Undertone = ShadeUndertone;
+
+const DEPTH_ORDER: ShadeDepth[] = ['fair', 'light', 'medium', 'tan', 'deep'];
+
 export function rgbToHex(r: number, g: number, b: number): string {
 	return (
 		'#' +
 		[r, g, b]
 			.map((x) => {
 				const hex = x.toString(16);
-				return hex.length === 1 ? '0' + hex : hex;
+				return hex.length === 1 ? `0${hex}` : hex;
 			})
 			.join('')
 	);
+}
+
+export function hexToRgb(hex: string): [number, number, number] {
+	const normalized = hex.replace('#', '');
+	const safeHex = normalized.length === 8 ? normalized.slice(0, 6) : normalized;
+
+	return [
+		parseInt(safeHex.slice(0, 2), 16),
+		parseInt(safeHex.slice(2, 4), 16),
+		parseInt(safeHex.slice(4, 6), 16)
+	];
 }
 
 export function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
@@ -17,58 +40,73 @@ export function rgbToHsl(r: number, g: number, b: number): [number, number, numb
 
 	const max = Math.max(r, g, b);
 	const min = Math.min(r, g, b);
-	let h = 0, s = 0, l = (max + min) / 2;
+	let h = 0;
+	let s = 0;
+	const l = (max + min) / 2;
 
 	if (max !== min) {
 		const d = max - min;
 		s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
 
 		switch (max) {
-			case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-			case g: h = (b - r) / d + 2; break;
-			case b: h = (r - g) / d + 4; break;
+			case r:
+				h = (g - b) / d + (g < b ? 6 : 0);
+				break;
+			case g:
+				h = (b - r) / d + 2;
+				break;
+			case b:
+				h = (r - g) / d + 4;
+				break;
 		}
+
 		h /= 6;
 	}
 
 	return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
 }
 
-export type Undertone = 'cool' | 'warm' | 'neutral';
-
-export function matchLipstickShade(hex: string): string[] {
-	const shades: Record<string, string[]> = {
-		light: ['soft pink', 'coral', 'peach'],
-		medium: ['rosewood', 'terracotta', 'plum'],
-		dark: ['berry', 'wine', 'deep red'],
-	};
-
-	// Dummy skin tone matching — customize later
-	if (!hex) return [];
-
-	const hexLower = hex.toLowerCase();
-
-	if (hexLower <= '#a88a7f') return shades.light;
-	if (hexLower <= '#c39b7d') return shades.medium;
-	return shades.dark;
+function srgbToLinear(value: number): number {
+	const normalized = value / 255;
+	return normalized <= 0.04045
+		? normalized / 12.92
+		: Math.pow((normalized + 0.055) / 1.055, 2.4);
 }
 
-function getDepthNameFromRGB(r: number, g: number, b: number): 'fair' | 'light' | 'medium' | 'tan' | 'deep' {
-	const [, , hslLightness] = rgbToHsl(r, g, b);
-	const perceivedBrightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255 * 100;
-	const depthScore = (hslLightness + perceivedBrightness) / 2;
+export function rgbToLab(r: number, g: number, b: number): [number, number, number] {
+	const red = srgbToLinear(r);
+	const green = srgbToLinear(g);
+	const blue = srgbToLinear(b);
 
-	if (depthScore >= 78) return 'fair';
-	if (depthScore >= 60) return 'light';
-	if (depthScore >= 46) return 'medium';
-	if (depthScore >= 32) return 'tan';
+	const x = red * 0.4124 + green * 0.3576 + blue * 0.1805;
+	const y = red * 0.2126 + green * 0.7152 + blue * 0.0722;
+	const z = red * 0.0193 + green * 0.1192 + blue * 0.9505;
+
+	const pivot = (value: number) =>
+		value > 0.008856 ? Math.cbrt(value) : 7.787 * value + 16 / 116;
+
+	const fx = pivot(x / 0.95047);
+	const fy = pivot(y / 1);
+	const fz = pivot(z / 1.08883);
+
+	return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+
+function getDepthNameFromRGB(r: number, g: number, b: number): ShadeDepth {
+	const [labLightness] = rgbToLab(r, g, b);
+	const [, , hslLightness] = rgbToHsl(r, g, b);
+	const brightness = ((0.299 * r + 0.587 * g + 0.114 * b) / 255) * 100;
+	const depthScore = labLightness * 0.55 + hslLightness * 0.25 + brightness * 0.2;
+
+	if (depthScore >= 76) return 'fair';
+	if (depthScore >= 61) return 'light';
+	if (depthScore >= 47) return 'medium';
+	if (depthScore >= 33) return 'tan';
 	return 'deep';
 }
 
-function getToneShadeKeyFromRGB(r: number, g: number, b: number): string {
-	const depth = getDepthNameFromRGB(r, g, b);
-	const undertone = getUndertone(r, g, b);
-	return `${depth} ${undertone}`;
+function getDepthIndexFromRGB(r: number, g: number, b: number): number {
+	return DEPTH_ORDER.indexOf(getDepthNameFromRGB(r, g, b));
 }
 
 function getToneVariantNumber(undertone: Undertone): 1 | 2 | 3 {
@@ -77,94 +115,84 @@ function getToneVariantNumber(undertone: Undertone): 1 | 2 | 3 {
 	return 3;
 }
 
-
-export function matchLipstickShadeByTone(r: number, g: number, b: number): string[] {
-	const toneName = getToneShadeKeyFromRGB(r, g, b);
-
-	const toneMap: Record<string, string[]> = {
-		'fair cool': ['ice pink', 'frosty rose', 'cloudberry', 'rosebud'],
-		'fair neutral': ['shell pink', 'clear gloss', 'cool nude'],
-		'fair warm': ['warm peach', 'soft bronze', 'sunset coral'],
-		'light cool': ['pink beige', 'terracotta', 'cool nude'],
-		'light neutral': ['warm nude', 'rich coral', 'mocha'],
-		'light warm': ['berry blush', 'rust', 'deep rose'],
-		'medium cool': ['plum', 'wine', 'burnt sienna'],
-		'medium neutral': ['brick red', 'dark nude', 'currant'],
-		'medium warm': ['rich spice', 'cherrywood', 'bold berry'],
-		'tan cool': ['garnet', 'merlot', 'vamp red'],
-		'tan neutral': ['aubergine', 'black cherry', 'sable'],
-		'tan warm': ['espresso', 'dark chocolate', 'mahogany'],
-		'deep cool': ['oxblood', 'moody plum', 'cool burgundy'],
-		'deep neutral': ['deep wine', 'cool nude', 'fig']
-	};
-
-	return toneMap[toneName] ?? ['clear gloss', 'rosebud', 'warm nude'];
+function getHueDistance(a: number, b: number): number {
+	const diff = Math.abs(a - b);
+	return Math.min(diff, 360 - diff);
 }
 
-
-export function matchLipstickByUndertone(r: number, g: number, b: number): string[] {
-	const undertone = getUndertone(r, g, b);
-
-	const shadeMap = {
-		cool: ['plum', 'rosebud', 'moody plum'],
-		warm: ['terracotta', 'sunset coral', 'caramel blush'],
-		neutral: ['soft bronze', 'pink beige', 'clear gloss']
-	};
-
-	return shadeMap[undertone];
+function getUndertoneAffinityScore(
+	userUndertone: Undertone,
+	shadeUndertones: ShadeUndertone[]
+): number {
+	if (shadeUndertones.includes(userUndertone)) return 22;
+	if (shadeUndertones.includes('neutral')) return 10;
+	return -8;
 }
 
-export function getBestMatchedShades(r: number, g: number, b: number): string[] {
-	const toneShades = matchLipstickShadeByTone(r, g, b);
-	const undertoneShades = matchLipstickByUndertone(r, g, b);
+function getDepthAffinityScore(userDepthIndex: number, shadeDepths: ShadeDepth[]): number {
+	if (!shadeDepths.length) return 8;
 
-	// Combine and ensure uniqueness
-	const combined = [...new Set([...toneShades, ...undertoneShades])];
+	const bestDistance = Math.min(
+		...shadeDepths.map((depth) => Math.abs(userDepthIndex - DEPTH_ORDER.indexOf(depth)))
+	);
 
-	// Always return exactly 3 shades
-	if (combined.length >= 3) {
-		return combined.slice(0, 3);
-	} else {
-		// Pad with fallback universal shades if needed
-		const fallback = ['clear gloss', 'universal red', 'rosebud'];
-		const padded = [...combined];
-		for (const f of fallback) {
-			if (!padded.includes(f)) padded.push(f);
-			if (padded.length === 3) break;
-		}
-		return padded;
+	if (bestDistance === 0) return 24;
+	if (bestDistance === 1) return 15;
+	if (bestDistance === 2) return 5;
+	return -10;
+}
+
+function getHueHarmonyScore(
+	userHue: number,
+	userUndertone: Undertone,
+	shadeHex: string,
+	userDepthIndex: number
+): number {
+	const [shadeR, shadeG, shadeB] = hexToRgb(shadeHex);
+	const [shadeHue, shadeSaturation, shadeLightness] = rgbToHsl(shadeR, shadeG, shadeB);
+	const hueDistance = getHueDistance(userHue, shadeHue);
+
+	let score = 18 - Math.min(hueDistance / 8, 18);
+
+	if (userUndertone === 'warm' && shadeHue >= 5 && shadeHue <= 55) score += 8;
+	if (
+		userUndertone === 'cool' &&
+		((shadeHue >= 300 && shadeHue <= 355) || (shadeHue >= 200 && shadeHue <= 280))
+	) {
+		score += 8;
 	}
+	if (userUndertone === 'neutral' && shadeSaturation <= 62) score += 6;
+
+	if (userDepthIndex >= 3 && shadeLightness <= 42) score += 5;
+	if (userDepthIndex <= 1 && shadeLightness >= 45) score += 5;
+
+	return score;
 }
 
-const shadeDescriptions: Record<string, string> = {
-  'ice pink': 'A frosty touch that highlights cool undertones in fair skin.',
-  'frosty rose': 'Delicate and icy—perfect for a fair cool tone.',
-  'cloudberry': 'Soft and dreamy for those with light, cool elegance.',
-  'rosebud': 'A versatile pink that flatters cool tones across the spectrum.',
-  'shell pink': 'Subtle and sweet for fair neutral skin.',
-  'clear gloss': 'A universal finish that suits every undertone.',
-  'cool nude': 'Balanced and understated, perfect for neutral complexions.',
-  'warm peach': 'Glows beautifully against warm undertones.',
-  'soft bronze': 'Adds sun-kissed warmth to fair or light warm skin.',
-  'sunset coral': 'Brightens up warm skin with a peachy pop.',
-  'terracotta': 'Rich and earthy—complements warm or olive undertones.',
-  'plum': 'Deep and striking for cool or medium tones.',
-  'wine': 'A classic choice that enhances medium cool elegance.',
-  'burnt sienna': 'Adds depth and warmth to medium skin.',
-  'rich spice': 'Vibrant and bold, perfect for warm medium tones.',
-  'cherrywood': 'Deep red with warm depth—great for autumn tones.',
-  'moody plum': 'Dark and dramatic—stands out on deep cool complexions.',
-  'oxblood': 'Bold and chic for cool, deep tones.',
-  'caramel blush': 'Sweet and warm, ideal for golden undertones.',
-  'universal red': 'Timeless and flattering on all tones.',
-  'fig': 'Earthy and rich—pairs well with deep neutral skin.',
-  'dark nude': 'Neutral with a hint of depth, ideal for understated looks.',
-};
+export function getUndertone(r: number, g: number, b: number): Undertone {
+	const [h, s, l] = rgbToHsl(r, g, b);
+	const warmth = (r - b) / 255;
+	const redness = (r - g) / 255;
+	const goldness = (g - b) / 255;
 
-export function getShadeDescriptions(shades: string[]): string[] {
-  return shades.map((shade) => shadeDescriptions[shade] || 'A flattering choice for your skin tone.');
+	if (s < 16 || Math.abs(warmth) < 0.045) {
+		return 'neutral';
+	}
+
+	if (l > 84 && warmth < 0.015) {
+		return redness > 0.03 ? 'cool' : 'neutral';
+	}
+
+	if ((h >= 10 && h <= 55 && warmth > 0.03) || (goldness > 0.02 && warmth > 0.045)) {
+		return 'warm';
+	}
+
+	if ((h >= 185 && h <= 320) || warmth < -0.055 || redness < 0.01) {
+		return 'cool';
+	}
+
+	return 'neutral';
 }
-
 
 export function getToneNameFromRGB(r: number, g: number, b: number): string {
 	const depth = getDepthNameFromRGB(r, g, b);
@@ -173,31 +201,67 @@ export function getToneNameFromRGB(r: number, g: number, b: number): string {
 	return `${depth.charAt(0).toUpperCase()}${depth.slice(1)} ${toneNumber}`;
 }
 
-
-export function getUndertone(r: number, g: number, b: number): Undertone {
-	const [h, s, l] = rgbToHsl(r, g, b);
-
-	if (s < 20) {
-		return 'neutral';
-	}
-
-	// Special case for very fair skin with subtle pink/blue
-	if (l > 85 && (h < 25 || h > 330)) {
-		return 'cool';
-	}
-	if (l > 85 && r - b < 20 && r - g < 20) {
-	return 'cool';
+export function matchLipstickShadeByTone(r: number, g: number, b: number): string[] {
+	const depth = getDepthNameFromRGB(r, g, b);
+	const undertone = getUndertone(r, g, b);
+	return TONE_SHADE_MAP[`${depth} ${undertone}`] ?? ['clear gloss', 'rosebud', 'warm nude'];
 }
 
+export function matchLipstickByUndertone(r: number, g: number, b: number): string[] {
+	return UNDERTONE_SHADE_MAP[getUndertone(r, g, b)];
+}
 
-	// Hue-based classification
-	if ((h >= 0 && h <= 50) || (h >= 330 && h <= 360)) {
-		return 'warm';
-	}
+export function getBestMatchedShades(r: number, g: number, b: number): string[] {
+	const [h] = rgbToHsl(r, g, b);
+	const undertone = getUndertone(r, g, b);
+	const depthIndex = getDepthIndexFromRGB(r, g, b);
+	const preferredToneShades = matchLipstickShadeByTone(r, g, b);
+	const preferredUndertoneShades = matchLipstickByUndertone(r, g, b);
 
-	if (h >= 180 && h <= 300) {
-		return 'cool';
-	}
+	return [...shadeCatalog]
+		.map((shade) => {
+			let score = 0;
+			score += getDepthAffinityScore(depthIndex, shade.depthAffinities);
+			score += getUndertoneAffinityScore(undertone, shade.undertoneAffinities);
+			score += getHueHarmonyScore(h, undertone, shade.hex, depthIndex);
+			const toneIndex = preferredToneShades.indexOf(shade.name);
+			const undertoneIndex = preferredUndertoneShades.indexOf(shade.name);
+			if (toneIndex !== -1) score += 26 - toneIndex * 3;
+			if (undertoneIndex !== -1) score += 10 - undertoneIndex * 2;
+			return { name: shade.name, score };
+		})
+		.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+		.slice(0, 3)
+		.map((shade) => shade.name);
+}
 
-	return 'neutral';
+const shadeDescriptions: Record<string, string> = {
+	'ice pink': 'A frosty touch that highlights cool undertones in fair skin.',
+	'frosty rose': 'Delicate and icy, perfect for a fair cool tone.',
+	'cloudberry': 'Soft and dreamy for those with light, cool elegance.',
+	'rosebud': 'A versatile pink that flatters cool tones across the spectrum.',
+	'shell pink': 'Subtle and sweet for fair neutral skin.',
+	'clear gloss': 'A universal finish that suits every undertone.',
+	'cool nude': 'Balanced and understated, perfect for neutral complexions.',
+	'warm peach': 'Glows beautifully against warm undertones.',
+	'soft bronze': 'Adds sun-kissed warmth to fair or light warm skin.',
+	'sunset coral': 'Brightens up warm skin with a peachy pop.',
+	'terracotta': 'Rich and earthy, complements warm or olive undertones.',
+	'plum': 'Deep and striking for cool or medium tones.',
+	'wine': 'A classic choice that enhances medium cool elegance.',
+	'burnt sienna': 'Adds depth and warmth to medium skin.',
+	'rich spice': 'Vibrant and bold, perfect for warm medium tones.',
+	'cherrywood': 'Deep red with warm depth, great for autumn tones.',
+	'moody plum': 'Dark and dramatic, stands out on deep cool complexions.',
+	'oxblood': 'Bold and chic for cool, deep tones.',
+	'caramel blush': 'Sweet and warm, ideal for golden undertones.',
+	'universal red': 'Timeless and flattering on all tones.',
+	'fig': 'Earthy and rich, pairs well with deep neutral skin.',
+	'dark nude': 'Neutral with a hint of depth, ideal for understated looks.'
+};
+
+export function getShadeDescriptions(shades: string[]): string[] {
+	return shades.map(
+		(shade) => shadeDescriptions[shade] || 'A flattering choice for your skin tone.'
+	);
 }

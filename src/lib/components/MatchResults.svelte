@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { shadeColors } from '$lib/shadeColors';
+	import type { ShadeCatalogEntry } from '$lib/catalog/shades';
 
 	export let sampledHex: string | null = null;
 	export let detectedTone: string | null = null;
 	export let detectedUndertone: string | null = null;
 	export let suggestedShades: string[] = [];
+	export let shadeCatalog: Record<string, ShadeCatalogEntry> = {};
 
 	const dispatch = createEventDispatcher<{
 		affiliateclick: { shade: string; position: number };
@@ -51,12 +52,12 @@
 					{#each suggestedShades as shade, index}
 						<li>
 							<a
-								href={shadeColors[shade]?.link}
+								href={shadeCatalog[shade]?.productUrl}
 								target="_blank"
 								rel="noopener noreferrer"
 								on:click={() => dispatch('affiliateclick', { shade, position: index + 1 })}
 							>
-								<span class="swatch" style={`background-color: ${shadeColors[shade]?.hex ?? '#ccc'}`}></span>
+								<span class="swatch" style={`background-color: ${shadeCatalog[shade]?.hex ?? '#ccc'}`}></span>
 								<span class="shade-name">{shade}</span>
 								{#if index === 0}
 									<span class="best-badge">Best match</span>
@@ -74,7 +75,6 @@
 {/if}
 
 <style>
-	/* Keep match-profile presentation independent from the upload section. */
 	.results {
 		margin-top: 1.25rem;
 		padding: 1.2rem;
