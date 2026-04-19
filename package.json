@@ -17,6 +17,7 @@
 		"db:seed:generate": "node scripts/generate-shade-seed.mjs"
 	},
 	"devDependencies": {
+		"@types/pg": "^8.20.0",
 		"@sveltejs/adapter-auto": "^4.0.0",
 		"@sveltejs/kit": "^2.20.7",
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
@@ -36,6 +37,7 @@
 	},
 	"dependencies": {
 		"@vercel/analytics": "^1.5.0",
-		"face-api.js": "^0.22.2"
+		"face-api.js": "^0.22.2",
+		"pg": "^8.20.0"
 	}
 }
