@@ -3,6 +3,7 @@ import { sampleFaceSkinTone } from './skinSampling';
 
 type ProgressHandler = (update: AnalysisProgress) => void;
 type DetectionInput = HTMLImageElement | HTMLCanvasElement;
+type AnalysisImageInput = HTMLImageElement | HTMLCanvasElement;
 
 const DETECTION_ATTEMPTS = [
 	{
@@ -52,9 +53,15 @@ function createCanvas(width: number, height: number): HTMLCanvasElement {
 	return canvas;
 }
 
-function drawSourceToCanvas(imageElement: HTMLImageElement): HTMLCanvasElement {
-	const imageWidth = imageElement.naturalWidth || imageElement.width;
-	const imageHeight = imageElement.naturalHeight || imageElement.height;
+function getSourceDimensions(image: AnalysisImageInput) {
+	return {
+		height: ('naturalHeight' in image ? image.naturalHeight : image.height) || image.height,
+		width: ('naturalWidth' in image ? image.naturalWidth : image.width) || image.width
+	};
+}
+
+function drawSourceToCanvas(image: AnalysisImageInput): HTMLCanvasElement {
+	const { width: imageWidth, height: imageHeight } = getSourceDimensions(image);
 	const canvas = createCanvas(imageWidth, imageHeight);
 	const ctx = canvas.getContext('2d');
 
@@ -62,7 +69,7 @@ function drawSourceToCanvas(imageElement: HTMLImageElement): HTMLCanvasElement {
 		throw new AnalysisPipelineError('analysis_failed', 'Could not read the uploaded image.');
 	}
 
-	ctx.drawImage(imageElement, 0, 0, imageWidth, imageHeight);
+	ctx.drawImage(image, 0, 0, imageWidth, imageHeight);
 	return canvas;
 }
 
@@ -98,10 +105,10 @@ function createEnhancedCanvas(
 	return canvas;
 }
 
-function getDetectionVariants(imageElement: HTMLImageElement) {
-	const sourceCanvas = drawSourceToCanvas(imageElement);
+function getDetectionVariants(image: AnalysisImageInput) {
+	const sourceCanvas = drawSourceToCanvas(image);
 	return [
-		{ label: 'original', image: imageElement as DetectionInput },
+		{ label: 'original', image: image as DetectionInput },
 		{
 			label: 'shadow_lift',
 			image: createEnhancedCanvas(sourceCanvas, { brightnessOffset: 16, contrast: 1.04 }) as DetectionInput
@@ -127,16 +134,19 @@ function getLargestFaceMatch<T extends { detection: { box: { width: number; heig
 
 // Run the face detection pipeline and return a sampled RGB skin tone.
 export async function analyzeSelfieImage(
-	imageElement: HTMLImageElement,
+	image: AnalysisImageInput,
 	faceapi: FaceApiModule,
 	onProgress?: ProgressHandler
 ): Promise<AnalysisResult> {
-	await imageElement.decode();
+	if ('decode' in image && typeof image.decode === 'function') {
+		await image.decode();
+	}
+
 	let result = null;
 	let detectionVariant = 'original';
 	let detectionAttempts = 0;
 	let detectedFaceCount = 0;
-	const variants = getDetectionVariants(imageElement);
+	const variants = getDetectionVariants(image);
 
 	for (const [variantIndex, variant] of variants.entries()) {
 		for (const attempt of DETECTION_ATTEMPTS) {
@@ -172,8 +182,7 @@ export async function analyzeSelfieImage(
 		);
 	}
 
-	const imageWidth = imageElement.naturalWidth || imageElement.width;
-	const imageHeight = imageElement.naturalHeight || imageElement.height;
+	const { width: imageWidth, height: imageHeight } = getSourceDimensions(image);
 	const resized = faceapi.resizeResults(result, {
 		width: imageWidth,
 		height: imageHeight
@@ -188,7 +197,7 @@ export async function analyzeSelfieImage(
 		throw new AnalysisPipelineError('analysis_failed', 'Could not read the uploaded image.');
 	}
 
-	ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+	ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 	onProgress?.({ progress: 70, stage: 'Sampling skin tone...' });
 
 	const rgb = sampleFaceSkinTone(ctx, resized.landmarks.positions, imageWidth, imageHeight);

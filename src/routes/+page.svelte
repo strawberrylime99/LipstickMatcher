@@ -24,9 +24,10 @@
 		| 'analysis_failed';
 
 	type PreparedImage = {
+		analysisCanvas: HTMLCanvasElement;
 		height: number;
-		objectUrl: string;
 		originalType: string;
+		previewUrl: string;
 		wasResized: boolean;
 		width: number;
 	};
@@ -52,7 +53,6 @@
 	let analysisProgress = 0;
 	let analysisStage = 'Preparing image...';
 	let isDragActive = false;
-	let previewObjectUrls: string[] = [];
 	let progressInterval: ReturnType<typeof setInterval> | null = null;
 
 	const MAX_UPLOADS = 3;
@@ -140,14 +140,6 @@
 		detectedUndertone = null;
 	}
 
-	function releasePreviewObjectUrls() {
-		for (const objectUrl of previewObjectUrls) {
-			URL.revokeObjectURL(objectUrl);
-		}
-		previewObjectUrls = [];
-		previewUrls = [];
-	}
-
 	function openFileDialog() {
 		uploadInput?.click();
 	}
@@ -223,6 +215,35 @@
 		};
 	}
 
+	function readFileAsDataUrl(file: File): Promise<string> {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(String(reader.result ?? ''));
+			reader.onerror = () =>
+				reject(
+					new UploadAnalysisError(
+						'image_read_failed',
+						'Could not read the uploaded photo.',
+						'prepare'
+					)
+				);
+			reader.readAsDataURL(file);
+		});
+	}
+
+	async function createUploadImageElement(file: File): Promise<HTMLImageElement> {
+		const objectUrl = URL.createObjectURL(file);
+
+		try {
+			return await createImageElement(objectUrl);
+		} catch (_error) {
+			const fallbackDataUrl = await readFileAsDataUrl(file);
+			return createImageElement(fallbackDataUrl);
+		} finally {
+			URL.revokeObjectURL(objectUrl);
+		}
+	}
+
 	async function prepareFileForAnalysis(file: File): Promise<PreparedImage> {
 		if (isUnsupportedUploadFormat(file)) {
 			throw new UploadAnalysisError(
@@ -232,50 +253,33 @@
 			);
 		}
 
-		const objectUrl = URL.createObjectURL(file);
+		const image = await createUploadImageElement(file);
+		const sourceWidth = image.naturalWidth || image.width;
+		const sourceHeight = image.naturalHeight || image.height;
+		const { width, height, wasResized } = getNormalizedDimensions(sourceWidth, sourceHeight);
+		const canvas = document.createElement('canvas');
+		canvas.width = width;
+		canvas.height = height;
+		const ctx = canvas.getContext('2d');
 
-		try {
-			const image = await createImageElement(objectUrl);
-			const sourceWidth = image.naturalWidth || image.width;
-			const sourceHeight = image.naturalHeight || image.height;
-			const { width, height, wasResized } = getNormalizedDimensions(sourceWidth, sourceHeight);
-			const canvas = document.createElement('canvas');
-			canvas.width = width;
-			canvas.height = height;
-			const ctx = canvas.getContext('2d');
-
-			if (!ctx) {
-				throw new UploadAnalysisError(
-					'image_read_failed',
-					'Could not prepare the uploaded photo for analysis.',
-					'prepare'
-				);
-			}
-
-			ctx.drawImage(image, 0, 0, width, height);
-
-			const preparedBlob = await new Promise<Blob | null>((resolve) =>
-				canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.86)
+		if (!ctx) {
+			throw new UploadAnalysisError(
+				'image_read_failed',
+				'Could not prepare the uploaded photo for analysis.',
+				'prepare'
 			);
-
-			if (!preparedBlob) {
-				throw new UploadAnalysisError(
-					'image_read_failed',
-					'Could not prepare the uploaded photo for analysis.',
-					'prepare'
-				);
-			}
-
-			return {
-				height,
-				objectUrl: URL.createObjectURL(preparedBlob),
-				originalType: file.type || 'unknown',
-				wasResized,
-				width
-			};
-		} finally {
-			URL.revokeObjectURL(objectUrl);
 		}
+
+		ctx.drawImage(image, 0, 0, width, height);
+
+		return {
+			analysisCanvas: canvas,
+			height,
+			originalType: file.type || 'unknown',
+			previewUrl: canvas.toDataURL('image/jpeg', 0.86),
+			wasResized,
+			width
+		};
 	}
 
 	async function prepareFilesForAnalysis(files: File[]): Promise<PreparedImage[]> {
@@ -329,15 +333,12 @@
 				);
 			}
 
-			releasePreviewObjectUrls();
-			previewObjectUrls = preparedImages.map((image) => image.objectUrl);
-			previewUrls = [...previewObjectUrls];
+			previewUrls = preparedImages.map((image) => image.previewUrl);
 			const rgbSamples: RgbSample[] = [];
 			const detectionVariants: string[] = [];
 			const imageFailures: UploadAnalysisError[] = [];
 
 			for (const [index, preparedImage] of preparedImages.entries()) {
-				const imageElement = await createImageElement(preparedImage.objectUrl);
 				const progressBase = Math.round((index / preparedImages.length) * 72);
 				const progressSpan = Math.max(18, Math.round(72 / preparedImages.length));
 
@@ -347,7 +348,7 @@
 				);
 
 				try {
-					const { rgb, debug } = await analyzeSelfieImage(imageElement, faceapi, ({ progress, stage }) => {
+					const { rgb, debug } = await analyzeSelfieImage(preparedImage.analysisCanvas, faceapi, ({ progress, stage }) => {
 						const scaledProgress = 18 + progressBase + Math.round((progress / 100) * progressSpan);
 						updateProgress(
 							scaledProgress,
@@ -426,7 +427,6 @@
 			const preparedImages = await prepareFilesForAnalysis(files);
 			await analyzeImages(preparedImages, source);
 		} catch (error) {
-			releasePreviewObjectUrls();
 			const normalizedError = normalizeAnalysisError(error);
 			analysisError = normalizedError.message;
 			track('analysis_error', {
@@ -478,7 +478,6 @@
 
 	onDestroy(() => {
 		stopProgress();
-		releasePreviewObjectUrls();
 	});
 </script>
 
