@@ -4,7 +4,7 @@
 	import UploadAnalyzer from '$lib/components/UploadAnalyzer.svelte';
 	import MatchResults from '$lib/components/MatchResults.svelte';
 	import { loadFaceApiModels } from '$lib/analysis/faceModel';
-	import { analyzeSelfieImage } from '$lib/analysis/analyzeSelfie';
+	import { AnalysisPipelineError, analyzeSelfieImage } from '$lib/analysis/analyzeSelfie';
 	import { aggregateRgbSamples } from '$lib/analysis/aggregateSamples';
 	import type { FaceApiModule, RgbSample } from '$lib/analysis/types';
 	import { buildMatchProfile } from '$lib/recommendations/buildMatchProfile';
@@ -14,6 +14,22 @@
 	injectAnalytics();
 
 	type UploadSource = 'file_picker' | 'drop_zone';
+	type AnalysisErrorCode =
+		| 'model_not_ready'
+		| 'unsupported_format'
+		| 'image_decode_failed'
+		| 'image_read_failed'
+		| 'no_face_detected'
+		| 'skin_sampling_failed'
+		| 'analysis_failed';
+
+	type PreparedImage = {
+		dataUrl: string;
+		height: number;
+		originalType: string;
+		wasResized: boolean;
+		width: number;
+	};
 
 	export let data: {
 		shadeCatalog: Record<string, ShadeCatalogEntry>;
@@ -32,12 +48,14 @@
 	let modelLoadError: string | null = null;
 	let isAnalyzing = false;
 	let analysisError: string | null = null;
+	let analysisNotice: string | null = null;
 	let analysisProgress = 0;
 	let analysisStage = 'Preparing image...';
 	let isDragActive = false;
 	let progressInterval: ReturnType<typeof setInterval> | null = null;
 
 	const MAX_UPLOADS = 3;
+	const MAX_ANALYSIS_DIMENSION = 1600;
 	const siteUrl = 'https://lipstickmatcher.com';
 	const latestPosts = [...posts]
 		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -114,6 +132,7 @@
 
 	function resetResults() {
 		analysisError = null;
+		analysisNotice = null;
 		sampledHex = null;
 		suggestedShades = [];
 		detectedTone = null;
@@ -122,6 +141,25 @@
 
 	function openFileDialog() {
 		uploadInput?.click();
+	}
+
+	class UploadAnalysisError extends Error {
+		code: AnalysisErrorCode;
+		debug?: Record<string, number | string>;
+		stage: 'prepare' | 'analyze';
+
+		constructor(
+			code: AnalysisErrorCode,
+			message: string,
+			stage: 'prepare' | 'analyze' = 'analyze',
+			debug?: Record<string, number | string>
+		) {
+			super(message);
+			this.name = 'UploadAnalysisError';
+			this.code = code;
+			this.debug = debug;
+			this.stage = stage;
+		}
 	}
 
 	function onDropZoneKeydown(event: KeyboardEvent) {
@@ -135,58 +173,174 @@
 		return new Promise((resolve, reject) => {
 			const image = new Image();
 			image.onload = () => resolve(image);
-			image.onerror = () => reject(new Error('Could not prepare one of the uploaded photos.'));
+			image.onerror = () =>
+				reject(
+					new UploadAnalysisError(
+						'image_decode_failed',
+						'That photo format could not be opened in this browser. Try a JPG, PNG, or WEBP selfie.',
+						'prepare'
+					)
+				);
 			image.src = imageDataUrl;
 		});
 	}
 
-	async function readFilesAsDataUrls(files: File[]): Promise<string[]> {
-		return Promise.all(
-			files.map(
-				(file) =>
-					new Promise<string>((resolve, reject) => {
-						const reader = new FileReader();
-						reader.onload = (event) => resolve((event.target?.result as string) ?? '');
-						reader.onerror = () => reject(new Error('Could not read uploaded file.'));
-						reader.readAsDataURL(file);
-					})
-			)
+	function getFileExtension(fileName: string): string {
+		const segments = fileName.split('.');
+		return segments.length > 1 ? segments.at(-1)?.toLowerCase() ?? '' : '';
+	}
+
+	function isUnsupportedUploadFormat(file: File): boolean {
+		const extension = getFileExtension(file.name);
+		return (
+			file.type === 'image/heic' ||
+			file.type === 'image/heif' ||
+			extension === 'heic' ||
+			extension === 'heif'
 		);
 	}
 
-	async function analyzeImages(imageDataUrls: string[], source: UploadSource) {
+	function getNormalizedDimensions(width: number, height: number) {
+		const longestSide = Math.max(width, height);
+		if (longestSide <= MAX_ANALYSIS_DIMENSION) {
+			return { width, height, wasResized: false };
+		}
+
+		const scale = MAX_ANALYSIS_DIMENSION / longestSide;
+		return {
+			width: Math.max(1, Math.round(width * scale)),
+			height: Math.max(1, Math.round(height * scale)),
+			wasResized: true
+		};
+	}
+
+	async function prepareFileForAnalysis(file: File): Promise<PreparedImage> {
+		if (isUnsupportedUploadFormat(file)) {
+			throw new UploadAnalysisError(
+				'unsupported_format',
+				'HEIC and HEIF photos fail in many browsers. Please export or convert the selfie to JPG, PNG, or WEBP first.',
+				'prepare'
+			);
+		}
+
+		const objectUrl = URL.createObjectURL(file);
+
+		try {
+			const image = await createImageElement(objectUrl);
+			const sourceWidth = image.naturalWidth || image.width;
+			const sourceHeight = image.naturalHeight || image.height;
+			const { width, height, wasResized } = getNormalizedDimensions(sourceWidth, sourceHeight);
+			const canvas = document.createElement('canvas');
+			canvas.width = width;
+			canvas.height = height;
+			const ctx = canvas.getContext('2d');
+
+			if (!ctx) {
+				throw new UploadAnalysisError(
+					'image_read_failed',
+					'Could not prepare the uploaded photo for analysis.',
+					'prepare'
+				);
+			}
+
+			ctx.drawImage(image, 0, 0, width, height);
+
+			return {
+				dataUrl: canvas.toDataURL('image/jpeg', 0.9),
+				height,
+				originalType: file.type || 'unknown',
+				wasResized,
+				width
+			};
+		} finally {
+			URL.revokeObjectURL(objectUrl);
+		}
+	}
+
+	async function prepareFilesForAnalysis(files: File[]): Promise<PreparedImage[]> {
+		return Promise.all(files.map((file) => prepareFileForAnalysis(file)));
+	}
+
+	function normalizeAnalysisError(error: unknown): UploadAnalysisError {
+		if (error instanceof UploadAnalysisError) {
+			return error;
+		}
+
+		if (error instanceof AnalysisPipelineError) {
+			return new UploadAnalysisError(error.code, error.message, 'analyze', error.debug);
+		}
+
+		if (error instanceof Error) {
+			if (error.message.includes('No face detected')) {
+				return new UploadAnalysisError('no_face_detected', error.message);
+			}
+
+			if (error.message.includes('Could not sample skin tone clearly')) {
+				return new UploadAnalysisError('skin_sampling_failed', error.message);
+			}
+
+			if (error.message.includes('Could not read uploaded file')) {
+				return new UploadAnalysisError('image_read_failed', error.message, 'prepare');
+			}
+
+			return new UploadAnalysisError('analysis_failed', error.message);
+		}
+
+		return new UploadAnalysisError('analysis_failed', 'Could not process this photo.');
+	}
+
+	async function analyzeImages(preparedImages: PreparedImage[], source: UploadSource) {
 		isAnalyzing = true;
 		resetResults();
 		startProgress();
-		track('upload_started', { source, imageCount: imageDataUrls.length });
+		track('upload_started', {
+			source,
+			imageCount: preparedImages.length,
+			originalTypes: preparedImages.map((image) => image.originalType).join(','),
+			resizedCount: preparedImages.filter((image) => image.wasResized).length
+		});
 
 		try {
 			if (!faceapi) {
-				throw new Error('Model is still loading. Try again in a moment.');
+				throw new UploadAnalysisError(
+					'model_not_ready',
+					'Model is still loading. Try again in a moment.'
+				);
 			}
 
-			previewUrls = imageDataUrls;
+			previewUrls = preparedImages.map((image) => image.dataUrl);
 			const rgbSamples: RgbSample[] = [];
+			const detectionVariants: string[] = [];
+			const imageFailures: UploadAnalysisError[] = [];
 
-			for (const [index, imageDataUrl] of imageDataUrls.entries()) {
-				const imageElement = await createImageElement(imageDataUrl);
-				const progressBase = Math.round((index / imageDataUrls.length) * 72);
-				const progressSpan = Math.max(18, Math.round(72 / imageDataUrls.length));
+			for (const [index, preparedImage] of preparedImages.entries()) {
+				const imageElement = await createImageElement(preparedImage.dataUrl);
+				const progressBase = Math.round((index / preparedImages.length) * 72);
+				const progressSpan = Math.max(18, Math.round(72 / preparedImages.length));
 
 				updateProgress(
 					18 + progressBase,
-					`Analyzing photo ${index + 1} of ${imageDataUrls.length}...`
+					`Analyzing photo ${index + 1} of ${preparedImages.length}...`
 				);
 
-				const { rgb } = await analyzeSelfieImage(imageElement, faceapi, ({ progress, stage }) => {
-					const scaledProgress = 18 + progressBase + Math.round((progress / 100) * progressSpan);
-					updateProgress(
-						scaledProgress,
-						`${stage} (${index + 1}/${imageDataUrls.length})`
-					);
-				});
+				try {
+					const { rgb, debug } = await analyzeSelfieImage(imageElement, faceapi, ({ progress, stage }) => {
+						const scaledProgress = 18 + progressBase + Math.round((progress / 100) * progressSpan);
+						updateProgress(
+							scaledProgress,
+							`${stage} (${index + 1}/${preparedImages.length})`
+						);
+					});
 
-				rgbSamples.push(rgb);
+					rgbSamples.push(rgb);
+					detectionVariants.push(debug.detectionVariant);
+				} catch (error) {
+					imageFailures.push(normalizeAnalysisError(error));
+				}
+			}
+
+			if (!rgbSamples.length) {
+				throw imageFailures[0] ?? new UploadAnalysisError('analysis_failed', 'Could not process this photo.');
 			}
 
 			const aggregatedRgb = aggregateRgbSamples(rgbSamples);
@@ -202,19 +356,37 @@
 			detectedUndertone = profile.detectedUndertone;
 			suggestedShades = profile.suggestedShades;
 
+			if (imageFailures.length) {
+				const successCount = rgbSamples.length;
+				const skippedCount = imageFailures.length;
+				analysisNotice = `${successCount} of ${preparedImages.length} photo${preparedImages.length === 1 ? '' : 's'} analyzed successfully. Results are based on the clearest usable upload${successCount > 1 ? 's' : ''}.`;
+				track('analysis_partial_success', {
+					source,
+					successCount,
+					skippedCount,
+					skippedCodes: imageFailures.map((failure) => failure.code).join(','),
+					detectionVariants: detectionVariants.join(',')
+				});
+			}
+
 			analysisProgress = 100;
 			analysisStage = 'Done';
 			track('analysis_complete', {
 				source,
+				detectionVariants: detectionVariants.join(','),
 				detectedTone,
 				detectedUndertone,
 				shadeCount: suggestedShades.length,
-				imageCount: imageDataUrls.length
+				imageCount: preparedImages.length
 			});
 		} catch (error) {
-			analysisError = error instanceof Error ? error.message : 'Could not process this photo.';
+			const normalizedError = normalizeAnalysisError(error);
+			analysisError = normalizedError.message;
 			track('analysis_error', {
 				source,
+				code: normalizedError.code,
+				...normalizedError.debug,
+				stage: normalizedError.stage,
 				message: analysisError
 			});
 		} finally {
@@ -227,14 +399,28 @@
 		const files = Array.from(fileList).slice(0, MAX_UPLOADS);
 		if (!files.length) return;
 
-		const imageDataUrls = await readFilesAsDataUrls(files);
-		await analyzeImages(imageDataUrls, source);
+		try {
+			const preparedImages = await prepareFilesForAnalysis(files);
+			await analyzeImages(preparedImages, source);
+		} catch (error) {
+			const normalizedError = normalizeAnalysisError(error);
+			analysisError = normalizedError.message;
+			track('analysis_error', {
+				source,
+				code: normalizedError.code,
+				...normalizedError.debug,
+				stage: normalizedError.stage,
+				message: normalizedError.message
+			});
+		}
 	}
 
 	async function handleUpload(event: Event) {
-		const files = (event.target as HTMLInputElement)?.files;
+		const input = event.target as HTMLInputElement;
+		const files = input?.files;
 		if (!files?.length) return;
 		await handleFiles(files, 'file_picker');
+		input.value = '';
 	}
 
 	async function handleDrop(event: DragEvent) {
@@ -353,6 +539,9 @@
 			on:dragleavezone={handleDragLeave}
 			on:keyactivate={(event) => onDropZoneKeydown(event.detail)}
 		/>
+		{#if analysisNotice}
+			<p class="analysis-notice">{analysisNotice}</p>
+		{/if}
 	</header>
 
 	<MatchResults
@@ -600,6 +789,16 @@
 
 	.hero :global(.analyzer) {
 		margin-top: 1.1rem;
+	}
+
+	.analysis-notice {
+		margin: 0.9rem 0 0;
+		padding: 0.75rem 0.9rem;
+		background: #fff8e8;
+		border: 1px solid #f1d7a2;
+		color: #7d4d14;
+		border-radius: 10px;
+		font-weight: 600;
 	}
 
 	.section-head {

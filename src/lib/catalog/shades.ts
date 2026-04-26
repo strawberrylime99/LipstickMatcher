@@ -55,6 +55,6 @@ export const shadeCatalog: ShadeCatalogEntry[] = Object.entries(shadeColors)
 	}))
 	.sort((a, b) => a.name.localeCompare(b.name));
 
-export function getShadeCatalogMap(): Record<string, ShadeCatalogEntry> {
-	return Object.fromEntries(shadeCatalog.map((entry) => [entry.name, entry]));
+export function getShadeCatalogMap(entries: ShadeCatalogEntry[] = shadeCatalog): Record<string, ShadeCatalogEntry> {
+	return Object.fromEntries(entries.map((entry) => [entry.name, entry]));
 }

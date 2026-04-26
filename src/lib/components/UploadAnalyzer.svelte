@@ -47,7 +47,7 @@
 		tabindex="0"
 	>
 		<p><strong>Drop up to {maxUploads} selfies here</strong> or click to browse</p>
-		<small>JPG, PNG, HEIC (best in even lighting)</small>
+		<small>JPG, PNG, or WEBP (best in even lighting)</small>
 		<input
 			bind:this={uploadInput}
 			type="file"

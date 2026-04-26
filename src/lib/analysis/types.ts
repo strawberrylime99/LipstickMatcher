@@ -7,7 +7,14 @@ export type AnalysisProgress = {
 	stage: string;
 };
 
+export type AnalysisDebugDetails = {
+	detectedFaceCount: number;
+	detectionAttempts: number;
+	detectionVariant: string;
+};
+
 export type AnalysisResult = {
+	debug: AnalysisDebugDetails;
 	rgb: RgbSample;
 };
 

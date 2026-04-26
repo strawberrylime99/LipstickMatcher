@@ -10,6 +10,22 @@ create table if not exists public.shades (
 	constraint shades_hex_format check (hex ~* '^#[0-9a-f]{6}([0-9a-f]{2})?$')
 );
 
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+	new.updated_at = timezone('utc', now());
+	return new;
+end;
+$$;
+
+drop trigger if exists set_shades_updated_at on public.shades;
+create trigger set_shades_updated_at
+before update on public.shades
+for each row
+execute function public.set_updated_at();
+
 create index if not exists shades_name_idx on public.shades (name);
 create index if not exists shades_depth_affinities_idx on public.shades using gin (depth_affinities);
 create index if not exists shades_undertone_affinities_idx on public.shades using gin (undertone_affinities);
