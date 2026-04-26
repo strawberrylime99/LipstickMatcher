@@ -24,8 +24,8 @@
 		| 'analysis_failed';
 
 	type PreparedImage = {
-		dataUrl: string;
 		height: number;
+		objectUrl: string;
 		originalType: string;
 		wasResized: boolean;
 		width: number;
@@ -52,6 +52,7 @@
 	let analysisProgress = 0;
 	let analysisStage = 'Preparing image...';
 	let isDragActive = false;
+	let previewObjectUrls: string[] = [];
 	let progressInterval: ReturnType<typeof setInterval> | null = null;
 
 	const MAX_UPLOADS = 3;
@@ -137,6 +138,14 @@
 		suggestedShades = [];
 		detectedTone = null;
 		detectedUndertone = null;
+	}
+
+	function releasePreviewObjectUrls() {
+		for (const objectUrl of previewObjectUrls) {
+			URL.revokeObjectURL(objectUrl);
+		}
+		previewObjectUrls = [];
+		previewUrls = [];
 	}
 
 	function openFileDialog() {
@@ -245,9 +254,21 @@
 
 			ctx.drawImage(image, 0, 0, width, height);
 
+			const preparedBlob = await new Promise<Blob | null>((resolve) =>
+				canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.86)
+			);
+
+			if (!preparedBlob) {
+				throw new UploadAnalysisError(
+					'image_read_failed',
+					'Could not prepare the uploaded photo for analysis.',
+					'prepare'
+				);
+			}
+
 			return {
-				dataUrl: canvas.toDataURL('image/jpeg', 0.9),
 				height,
+				objectUrl: URL.createObjectURL(preparedBlob),
 				originalType: file.type || 'unknown',
 				wasResized,
 				width
@@ -308,13 +329,15 @@
 				);
 			}
 
-			previewUrls = preparedImages.map((image) => image.dataUrl);
+			releasePreviewObjectUrls();
+			previewObjectUrls = preparedImages.map((image) => image.objectUrl);
+			previewUrls = [...previewObjectUrls];
 			const rgbSamples: RgbSample[] = [];
 			const detectionVariants: string[] = [];
 			const imageFailures: UploadAnalysisError[] = [];
 
 			for (const [index, preparedImage] of preparedImages.entries()) {
-				const imageElement = await createImageElement(preparedImage.dataUrl);
+				const imageElement = await createImageElement(preparedImage.objectUrl);
 				const progressBase = Math.round((index / preparedImages.length) * 72);
 				const progressSpan = Math.max(18, Math.round(72 / preparedImages.length));
 
@@ -403,6 +426,7 @@
 			const preparedImages = await prepareFilesForAnalysis(files);
 			await analyzeImages(preparedImages, source);
 		} catch (error) {
+			releasePreviewObjectUrls();
 			const normalizedError = normalizeAnalysisError(error);
 			analysisError = normalizedError.message;
 			track('analysis_error', {
@@ -454,6 +478,7 @@
 
 	onDestroy(() => {
 		stopProgress();
+		releasePreviewObjectUrls();
 	});
 </script>
 
