@@ -1,4 +1,5 @@
 import type { Point, RgbSample } from './types';
+import { rgbToLab } from '$lib/colorUtils';
 
 function sampleMedianRgb(
 	ctx: CanvasRenderingContext2D,
@@ -60,10 +61,12 @@ function getChannelMedian(values: number[]): number {
 }
 
 function getSampleDistance(a: RgbSample, b: RgbSample): number {
-	return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+	const [al, aa, ab] = rgbToLab(a[0], a[1], a[2]);
+	const [bl, ba, bb] = rgbToLab(b[0], b[1], b[2]);
+	return Math.hypot(al - bl, aa - ba, ab - bb);
 }
 
-function filterStableSamples(samples: RgbSample[], maxDistance = 26): RgbSample[] {
+function filterStableSamples(samples: RgbSample[], maxDistance = 11): RgbSample[] {
 	if (samples.length <= 2) return samples;
 
 	const medianSample: RgbSample = [
@@ -135,13 +138,13 @@ export function sampleFaceSkinTone(
 	]);
 	const noseSamples = filterStableSamples(
 		collectSamples(ctx, nosePoints, Math.max(3, sampleRadius - 1)),
-		18
+		8
 	);
 	const cheekAverage = cheekSamples.length ? averageSamples(cheekSamples) : null;
 	const compatibleNoseSamples =
-		cheekAverage === null
-			? noseSamples
-			: noseSamples.filter((sample) => getSampleDistance(sample, cheekAverage) <= 14);
+			cheekAverage === null
+				? noseSamples
+				: noseSamples.filter((sample) => getSampleDistance(sample, cheekAverage) <= 6.5);
 	const samples = [...cheekSamples, ...compatibleNoseSamples];
 
 	return samples.length ? averageSamples(samples) : null;

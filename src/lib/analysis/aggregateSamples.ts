@@ -1,4 +1,5 @@
 import type { RgbSample } from './types';
+import { rgbToLab } from '$lib/colorUtils';
 
 function getChannelMedian(values: number[]): number {
 	const sorted = [...values].sort((a, b) => a - b);
@@ -6,7 +7,9 @@ function getChannelMedian(values: number[]): number {
 }
 
 function getSampleDistance(a: RgbSample, b: RgbSample): number {
-	return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+	const [al, aa, ab] = rgbToLab(a[0], a[1], a[2]);
+	const [bl, ba, bb] = rgbToLab(b[0], b[1], b[2]);
+	return Math.hypot(al - bl, aa - ba, ab - bb);
 }
 
 function averageSamples(samples: RgbSample[]): RgbSample {
@@ -28,7 +31,7 @@ export function aggregateRgbSamples(samples: RgbSample[]): RgbSample | null {
 		getChannelMedian(samples.map((sample) => sample[2]))
 	];
 
-	const stableSamples = samples.filter((sample) => getSampleDistance(sample, medianSample) <= 24);
+	const stableSamples = samples.filter((sample) => getSampleDistance(sample, medianSample) <= 11);
 	const preferredSamples =
 		stableSamples.length >= Math.ceil(samples.length / 2) ? stableSamples : samples;
 

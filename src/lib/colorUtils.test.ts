@@ -17,15 +17,24 @@ describe('colorUtils', () => {
 	});
 
 	it('maps brighter skin samples into a light tone bucket', () => {
-		expect(getToneNameFromRGB(186, 140, 134)).toBe('Light 3');
+		expect(getToneNameFromRGB(186, 140, 134)).toBe('Light 2');
 	});
 
 	it('detects neutral undertones for low-saturation samples', () => {
 		expect(getUndertone(198, 183, 180)).toBe('neutral');
 	});
 
+	it('leans warm for golden skin samples without overcalling peachy neutrals', () => {
+		expect(getUndertone(228, 196, 176)).toBe('warm');
+		expect(getUndertone(188, 166, 160)).toBe('neutral');
+	});
+
+	it('keeps cooler rosy samples out of the warm bucket', () => {
+		expect(getUndertone(226, 196, 202)).toBe('neutral');
+	});
+
 	it('returns a stable list of three recommended shades', () => {
 		expect(getBestMatchedShades(186, 140, 134)).toHaveLength(3);
-		expect(getBestMatchedShades(186, 140, 134)).toEqual(['rust', 'deep rose', 'berry blush']);
+		expect(getBestMatchedShades(186, 140, 134)).toEqual(['warm nude', 'deep rose', 'rich coral']);
 	});
 });

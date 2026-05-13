@@ -13,7 +13,7 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'rosebud': {
 		hex: '#f4c2c2',
-		link: 'https://www.amazon.com/LAURA-GELLER-NEW-YORK-Lipstick/dp/B0C6LTBFDD/ref=sr_1_3_sspa?crid=2VEHXLDUL7Q3A&dib=eyJ2IjoiMSJ9.NGU4WzwphEa17pPxxYCqip9hfNIbeyQMq48Dxav3U8YHUvJeyQrci83XnoqW7DBxJth_AiB-dEqqcDSn70Ah2pjBRswrxfIjMhkSlSyXhi3Qhtbr4Qya0gSfx5BvqB1qJ_YrfkWI8V-wOt0uqrxV0mQLWZxkxyTUsbFWgWSGxc1FFWGQNtQIbAReMkdHGTljkVfxCekKW2vZilX15siKui_utC3r9b9C634JKIPcaahL1jLkghu4noLCJxLK3efiiOXnILeBeMblIIaxQyKZoa-uZdykcX18g-3booLpg4A.T3HYBP959OO6xXG_jZ7_-WGXmD6YJR4M9PL5OwU8aKM&dib_tag=se&keywords=peach%2Blipstick&qid=1744951845&sprefix=peach%2Blipstick%2Caps%2C102&sr=8-3-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/dp/B07YXGDXYX?tag=lipstickmatch-20'
 	},
 	'clear gloss': {
 		hex: '#ffffffcc',
@@ -25,7 +25,7 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'cool nude': {
 		hex: '#ddb4b4',
-		link: 'https://www.amazon.com/Gerard-Cosmetics-Stick-Buttercup-Lipstick/dp/B00TR77YZG/ref=sr_1_1_sspa?crid=MLBHUB825LSB&dib=eyJ2IjoiMSJ9.IDNauYBGgEv_zOeuYBgYLQl1LYj-5VfUzE_qApUx2jOeBgEiBRbH9iNtVYNukMKyULHyZYU6vXO-UcKgwb8dV_NA603-bTgb5GyydoadJ93mvqEtugD7XzM3v0pmg9AA2gLarsAuPRmTXuLXFDcf7VpYCcot8CEXp6lzbNTUCBPVUMDJ22FiJTjgbrYuGq2eT5aD7jt3DiV3e86tu_cFcUwuEuziMYfT3CZNJ-HgRzWdypr_hseoINaK138naEDJztjTHMAxcGPDwdd1axzDxo8DFDnWQgkG-gk09HBBUsI.2qhOABVWyest-4yfPNawsKVG2ZTIWivyklSCMrBcP1g&dib_tag=se&keywords=cool%2Bnude%2Blipstick&qid=1744951911&sprefix=cool%2Bnude%2Blipstick%2Caps%2C76&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/dp/B00IZAXCSY?tag=lipstickmatch-20'
 	},
 	'warm peach': {
 		hex: '#fbb982',
@@ -33,27 +33,27 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'soft bronze': {
 		hex: '#d58f6f',
-		link: 'https://www.amazon.com/Gabriel-Cosmetics-Gluten-free-Cruelty-free-performance/dp/B001I6PXPC/ref=sr_1_7?crid=IHAG9SUP664E&dib=eyJ2IjoiMSJ9.Qi78BpLryCVcPGRTONt827nFBS3RMtB69daxCUVWGZvmgAhT-bNcSv8lkikALUdOyOD4Jg9Fd1C7l9voQCKUpUMmR_eEI6U60QiylkxoGgd0VUWzCeP0nu-YkjeNOJfa6LxeUJOH1KnjXzzp56fzbfrMU33wBE0pbg0UAX0SKtTtUwlSy04my6c3jF2cgmfSafzMkzapBfOoNNa4HDS17lSywxqhaSJkX-xrhkAe8K_R-J7Xp7Xq01tUjIeI3ykOAx9gj88uOKl7J8c9-EVIC-ttPdjPIfyrqnIWOzH-t0w.S-7WbpNLEqvIq1wp38Y9bFYhPGGAIBD3q7gRJUolqqs&dib_tag=se&keywords=soft+bronze+lipstick&qid=1744952003&refinements=p_36%3A1400-&rnid=386662011&sprefix=soft+bronze+lipstick%2Caps%2C104&sr=8-7&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/LOr%C3%A9al-Paris-Original-Hydrating-Lipstick/dp/B004BCZ6UM/ref=sr_1_11?crid=1RQ3FPY7F7Y2A&dib=eyJ2IjoiMSJ9.5MUZ_-2O3lXzZd7ScVQCCpU44BNHOND7aYQn0HJiU7Q8P07cLB5mvK8kZCVxzkUa91zRlZ4ZPZM1p7OHsnDOXjuqR-aEqFP1I-zL6aZsABlg0vCxy7MAhInf2pEs3T7Iov--0zDpVkm7Zo7BcWpbmnuWFGwhm5OAkwjZwDaDQ53BU3oCGT9D2ogBUom2FAA6bf60sPvGKSrPGkm88XXYPikRQdlxuXtDT3NQ6BWD9BZOaAkL6ysIWbpxFfxmSa_6fxRA7UGMydkmXNnVmF3CyH6cq24mg-4MtJzt-iJdn-I.VxAp3Ahe6loC36TXAufEG6HPLl7181fnN84eYjnYwE8&dib_tag=se&keywords=bronze+lipstick&qid=1778643558&sprefix=bronze+lipstick%2Caps%2C151&sr=8-11'
 	},
 	'sunset coral': {
 		hex: '#f88379',
-		link: 'https://www.amazon.com/Aromi-Metallic-Lipstick-Shimmery-Cruelty-free/dp/B0BLW15C41/ref=sr_1_2_sspa?crid=DUGR335PWKTZ&dib=eyJ2IjoiMSJ9.muitNGxUE-X7H0A7Rc27ewvF9kx38rj04c2aOmlCfFvoGCZhtxalmInJjx557h14rl7mjn6KOCv1BVXZ3HnXRcRSSw9Mwva70A1_n4OJ7jzWW9T673iYci0PrI1YkSDJVoUy3E_3fUTXAPyxd2_2Y2SDU__vBp6SQ8mWGRDXNt9fm8ZP4BMN58bZ_muQxqTsSZhLbJxrW_x2Gs91y6V4XzufG9bjL0zSc07nN3rsWMpQm_Xoan2toK0BRzVmt4i4qGeFs6dVDtw4FUYn8U_D-wX3WzBDTKEBIuj6m-Ya1BY.G33yJ0Qk3QVks3Hf67nheZiod2lvyrcDxTCA6HUjlUg&dib_tag=se&keywords=coral+lipstick&qid=1744952122&sprefix=coral+lipstick%2Caps%2C103&sr=8-2-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/dp/B07YXGJMRJ?tag=lipstickmatch-20'
 	},
 	'pink beige': {
 		hex: '#e2b7a0',
-		link: 'https://www.amazon.com/Anastasia-Beverly-Hills-Matte-Lipstick/dp/B0BS4D8CRV/ref=sr_1_6?crid=34X45L1CX67EL&dib=eyJ2IjoiMSJ9.b2-M3GoDWXTR73PNiaFgDBnfqkCJ6hpueaXXJMzW19wPg4vCi08A5HOBdks-l3yO3LfdGSpLpROxgQMc-9BL-Q3TfL04CZR6oVV0UuTfCAdnSdxnavDA61KYOfEK_4VjslzPjv-ObroaXfWy1fxyvtwRlMWnCyFu5gfD1n8M5CY1nZUIYai6kLr1eyPT9e1xR_S9Z3YeCuXqNfLfWUB6ikwu6XVx95gFYmkydxR5LMujEsm5MGTuJcDPZyAQTu3RsLD-65frVHFiCJRZKw4oCIWBaP6z2uAniHxF2lELPak.OfLnu111Ol5kMFUBPgJC84kUj8C4oCmWKvG26BXwDbc&dib_tag=se&keywords=pink%2Bbeige%2Blipstick&qid=1744951407&refinements=p_36%3A1500-&rnid=386662011&sprefix=pink%2Bbeige%2Blipstick%2Caps%2C85&sr=8-6&th=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/dp/B07YXFYM3Z?tag=lipstickmatch-20'
 	},
 	'terracotta': {
 		hex: '#e2725b',
-		link: 'https://www.amazon.com/LPaige-Designer-All-Natural-Long-lasting-Moisturizing/dp/B073G5NTJS/ref=sr_1_3_sspa?crid=2PPOEF1BQZV0A&dib=eyJ2IjoiMSJ9.HCaHSUFgR6QuecxbT9KE04eNWJjZtLSVVAPxPjfBjDGPctqpuiq0kTkEg3NCEmDu5aIq79oGUrKxrWICbZqjJdSYwJwCrjY9jLSL0dT1gL2PvMIs-cpM4KDSx4Tvgre1xHUEwliDlSoop186AhUpdgh4nAz4tgPD_IMG-jttjlZPDQRp7fmAldNVKeoHmYSRi--Jo8YPWxvJF2EaFOy2XHkLhVtf_zOazYXUPvoGWHzzCCaDnpq6TWweveb92Z3AYslnPP6rAvnUMlp43woMOVEHBw0yq-k0HtTIPwHXK5U.CoD0B9yjkrr5FZYW5Fgcha7Hzj183ASB74DzG14-ftA&dib_tag=se&keywords=orange%2Blipstick&qid=1744952163&refinements=p_36%3A1100-&rnid=386662011&sprefix=orange%2Blipstick%2Caps%2C87&sr=8-3-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/Revlon-Super-Lustrous-Lipstick-Peach/dp/B001LFER98/ref=sr_1_23?crid=2G2BU0ZYUGSM7&dib=eyJ2IjoiMSJ9.-GceiVdIehavaS3pGqbF3pA528NUV_FBKUgDFIATg0QVB9ZMllVeI1RlXs10wwFKymh7ZzBpaprQBMRFC1f8TwOuIZoF9-uw98HHDunQUTPkenCam7zMLrFlLDuER1852PQZJVNB8SFMDv2hAf9rSTh-Dk6vH64v900TotgSOvLXs-AiYgLa4iky590QDG63TEwbAPHFdUhNvrgmhkdJfCf0uyH8Y_eqy6k9IawoCGdH6RN_J7rfxYimGu0BRzMjbxsybgMAVlJYzeP1NCF-Ensvptc8nLUFYRs5gBeQ8ow.dY_gOQCBJW_JEICNnjh06yX_adXgu7soRXkP1-Ekuf8&dib_tag=se&keywords=orange+nude+lipstick&qid=1778642998&rdc=1&sprefix=orange+nude+lipstick%2Caps%2C144&sr=8-23'
 	},
 	'warm nude': {
 		hex: '#c68642',
-		link: 'https://www.amazon.com/Lipstick-Lightweight-Moisturizing-Fragrance-Cosmetics/dp/B0D98YT3PZ/ref=sr_1_3_sspa?crid=3CD1D7W3GUV9J&dib=eyJ2IjoiMSJ9.nQ7VKjaRPQ8-qEjQP9gd7YAuk5Nn0sSav_QJcspkL6p2--YMpo1UJ9ieguiD-JTdNmiyTjGkufU_pRU-rjcjHUHXKvKhvflqnxQdX4mlQh-_SkxPV1xEB9ZTHo2KS4gQNPbsbdoVWHMRhbpoL72YerAyKG99dpOPNnm8y0BnVOFnM0pAaVOVoheHNQ_cUQ9LXpDPevHLCZ-QkaYVrc4hqhZDTI74OpHar9OaQtGyroCuJlNNYYNFhoUHqSmJ1ix8A3U1Re3OeE85A_TXtFVyqNq5zbSLZRJuACvIUtP4Chs.TNCo_DxvqcRUDnbAe3155_j0lCKNSTVeFbt_OqZuR2c&dib_tag=se&keywords=warm%2Bnude%2Blipstick&qid=1744952217&refinements=p_36%3A1400-&rnid=386662011&sprefix=warm%2Bnude%2Blipstick%2Caps%2C93&sr=8-3-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/dp/B00IZAWBJU?tag=lipstickmatch-20'
 	},
 	'rich coral': {
 		hex: '#de5d83',
-		link: 'https://www.amazon.com/Anastasia-Beverly-Hills-Satin-Lipstick/dp/B09RTPY4ZY?tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/dp/B07YXGDXYW?tag=lipstickmatch-20'
 	},
 	'mocha': {
 		hex: '#3e2723',
@@ -133,7 +133,7 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'espresso': {
 		hex: '#3b2f2f',
-		link: 'https://www.amazon.com/Milani-Statement-Lipstick-Double-Espresso/dp/B00BG15E76/ref=sr_1_5?crid=1N3WCUZGXG8B0&dib=eyJ2IjoiMSJ9.DcpU7PfBnMUJ27UHTtMJzaKqACiJEuos2dTZTtFw9ByvQtGz2vLZ_N-2aWbv5dxn4GZtZLe98x74-gemj_Mqfa8OXtKDm8o_A0vdv5dJEYivohFX_5C2qoHXcYuFxA2GEpIGRcIbGMhAjxO7cieG81PQmr4GGtEnv5hl0JkSZBcYCIQdNC_b3cp1HreXTkOHDdU5ccp2tbn2HiGuvyBopq504obQ8syFsyV6UEMTaGdCBxKDLJpknnNeLY5lgcy7CcIGv41PzcyorzRxyyA_XtaYHjnHKCZ_L1xKZjw-1zI.fRlcQfFUij_-T7JJD9Ft0cPFdwdmGvLD4ljrkbWhbBg&dib_tag=se&keywords=espresso+color+lipstick&qid=1744951686&refinements=p_36%3A1400-&rnid=386662011&sprefix=espresso+color+lipstick%2Caps%2C77&sr=8-5&tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/dp/B002LFPZ0C?tag=lipstickmatch-20'
 	},
 	'dark chocolate': {
 		hex: '#3d1f00',
@@ -141,7 +141,7 @@ export const shadeColors: Record<string, { hex: string; link: string }> = {
 	},
 	'mahogany': {
 		hex: '#4a0100',
-		link: 'https://www.amazon.com/Runway-Rogue-Lipstick-Moisturizing-Midnight/dp/B0B1KGSDXZ?tag=lipstickmatch-20'
+		link: 'https://www.amazon.com/dp/B004Y9LLYM?tag=lipstickmatch-20'
 	},
 	'oxblood': {
 		hex: '#460c0f',

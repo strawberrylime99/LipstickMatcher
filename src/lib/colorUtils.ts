@@ -171,23 +171,32 @@ function getHueHarmonyScore(
 
 export function getUndertone(r: number, g: number, b: number): Undertone {
 	const [h, s, l] = rgbToHsl(r, g, b);
+	const [, aAxis, bAxis] = rgbToLab(r, g, b);
 	const warmth = (r - b) / 255;
 	const redness = (r - g) / 255;
-	const goldness = (g - b) / 255;
+	const chroma = Math.hypot(aAxis, bAxis);
+	const undertoneBalance = bAxis - aAxis * 0.45;
 
-	if (s < 16 || Math.abs(warmth) < 0.045) {
+	if (s < 16 || chroma < 12 || Math.abs(undertoneBalance) < 3.5) {
 		return 'neutral';
 	}
 
-	if (l > 84 && warmth < 0.015) {
+	if (l > 84 && undertoneBalance < 4) {
 		return redness > 0.03 ? 'cool' : 'neutral';
 	}
 
-	if ((h >= 10 && h <= 55 && warmth > 0.03) || (goldness > 0.02 && warmth > 0.045)) {
+	if (
+		undertoneBalance >= 8 ||
+		((h >= 8 && h <= 50) && warmth > 0.025 && bAxis > 12)
+	) {
 		return 'warm';
 	}
 
-	if ((h >= 185 && h <= 320) || warmth < -0.055 || redness < 0.01) {
+	if (
+		undertoneBalance <= 1.5 ||
+		((h >= 185 && h <= 320) && aAxis > 8) ||
+		(redness < 0.008 && bAxis < 12)
+	) {
 		return 'cool';
 	}
 
@@ -235,6 +244,89 @@ export function getBestMatchedShades(r: number, g: number, b: number): string[] 
 		.map((shade) => shade.name);
 }
 
+function getShadeFamilyLabel(name: string, hex: string): string {
+	const normalized = name.toLowerCase();
+
+	if (normalized.includes('gloss')) return 'glossy';
+	if (normalized.includes('nude')) return 'nude';
+	if (normalized.includes('rose') || normalized.includes('pink')) return 'rosy';
+	if (normalized.includes('berry') || normalized.includes('plum') || normalized.includes('fig'))
+		return 'berry-toned';
+	if (normalized.includes('peach') || normalized.includes('coral')) return 'peachy';
+	if (
+		normalized.includes('rust') ||
+		normalized.includes('terracotta') ||
+		normalized.includes('sienna') ||
+		normalized.includes('spice')
+	) {
+		return 'warm earthy';
+	}
+	if (
+		normalized.includes('wine') ||
+		normalized.includes('oxblood') ||
+		normalized.includes('cherry') ||
+		normalized.includes('red')
+	) {
+		return 'rich red';
+	}
+	if (
+		normalized.includes('bronze') ||
+		normalized.includes('caramel') ||
+		normalized.includes('mocha') ||
+		normalized.includes('espresso') ||
+		normalized.includes('chocolate')
+	) {
+		return 'soft brown';
+	}
+
+	const [hue] = rgbToHsl(...hexToRgb(hex));
+	if (hue >= 10 && hue <= 45) return 'warm earthy';
+	if (hue >= 46 && hue <= 80) return 'peachy';
+	if (hue >= 300 || hue <= 8) return 'rich red';
+	if (hue >= 260 && hue < 300) return 'berry-toned';
+	return 'rosy';
+}
+
+function getMatchReasonForShade(
+	userDepth: ShadeDepth,
+	userUndertone: Undertone,
+	shadeName: string,
+	position: number
+): string {
+	const shade = shadeCatalog.find((entry) => entry.name === shadeName);
+	if (!shade) return 'This one just works. Easy tone, easy depth, easy wear.';
+
+	const exactDepth = shade.depthAffinities.includes(userDepth);
+	const nearDepth = shade.depthAffinities.some(
+		(depth) => Math.abs(DEPTH_ORDER.indexOf(depth) - DEPTH_ORDER.indexOf(userDepth)) <= 1
+	);
+	const exactUndertone = shade.undertoneAffinities.includes(userUndertone);
+	const neutralFriendly = shade.undertoneAffinities.includes('neutral');
+	const family = getShadeFamilyLabel(shade.name, shade.hex);
+
+	const undertoneLine = exactUndertone
+		? `it plays really well with your ${userUndertone} undertone`
+		: neutralFriendly
+			? 'it stays nicely balanced on the undertone side'
+			: 'the undertone still lands in a flattering spot';
+
+	const depthLine = exactDepth
+		? 'and the depth feels right for your coloring'
+		: nearDepth
+			? 'and it stays close to your natural depth so it will not feel harsh'
+			: 'and it gives a little extra contrast without looking off';
+
+	if (position === 0) {
+		return `Your best bet if you want the safest win. The ${family} tone works because ${undertoneLine} ${depthLine}.`;
+	}
+
+	if (position === 1) {
+		return `A super easy second option. It leans ${family}, so you still get a great match while switching up the vibe a bit.`;
+	}
+
+	return `Good pick if you want a little more range. It still fits because ${undertoneLine} ${depthLine}.`;
+}
+
 const shadeDescriptions: Record<string, string> = {
 	'ice pink': 'A frosty touch that highlights cool undertones in fair skin.',
 	'frosty rose': 'Delicate and icy, perfect for a fair cool tone.',
@@ -264,4 +356,11 @@ export function getShadeDescriptions(shades: string[]): string[] {
 	return shades.map(
 		(shade) => shadeDescriptions[shade] || 'A flattering choice for your skin tone.'
 	);
+}
+
+export function getShadeMatchReasons(r: number, g: number, b: number, shades: string[]): string[] {
+	const userDepth = getDepthNameFromRGB(r, g, b);
+	const userUndertone = getUndertone(r, g, b);
+
+	return shades.map((shade, index) => getMatchReasonForShade(userDepth, userUndertone, shade, index));
 }

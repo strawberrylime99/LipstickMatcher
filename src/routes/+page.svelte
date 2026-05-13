@@ -42,6 +42,7 @@
 	let previewUrls: string[] = [];
 	let sampledHex: string | null = null;
 	let suggestedShades: string[] = [];
+	let shadeReasons: string[] = [];
 	let detectedTone: string | null = null;
 	let detectedUndertone: string | null = null;
 
@@ -136,6 +137,7 @@
 		analysisNotice = null;
 		sampledHex = null;
 		suggestedShades = [];
+		shadeReasons = [];
 		detectedTone = null;
 		detectedUndertone = null;
 	}
@@ -379,6 +381,7 @@
 			detectedTone = profile.detectedTone;
 			detectedUndertone = profile.detectedUndertone;
 			suggestedShades = profile.suggestedShades;
+			shadeReasons = profile.shadeReasons;
 
 			if (imageFailures.length) {
 				const successCount = rgbSamples.length;
@@ -573,6 +576,7 @@
 		{detectedTone}
 		{detectedUndertone}
 		{suggestedShades}
+		{shadeReasons}
 		shadeCatalog={data.shadeCatalog}
 		on:affiliateclick={(event) => trackAffiliateClick(event.detail.shade, event.detail.position)}
 	/>
