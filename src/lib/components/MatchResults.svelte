@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onDestroy, tick } from 'svelte';
 	import type { ShadeCatalogEntry } from '$lib/catalog/shades';
 
 	export let sampledHex: string | null = null;
@@ -16,11 +16,28 @@
 	$: hasResults = Boolean(sampledHex || detectedTone || detectedUndertone || suggestedShades.length > 0);
 	let isOpen = false;
 	let lastResultSignature = '';
+	let dialogElement: HTMLDivElement | null = null;
+	let closeButtonElement: HTMLButtonElement | null = null;
+	let previousActiveElement: HTMLElement | null = null;
 
 	$: resultSignature = suggestedShades.join('|');
 	$: if (hasResults && resultSignature && resultSignature !== lastResultSignature) {
 		isOpen = true;
 		lastResultSignature = resultSignature;
+	}
+
+	$: if (typeof document !== 'undefined') {
+		document.body.classList.toggle('results-open', isOpen);
+	}
+
+	$: if (isOpen) {
+		previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		void tick().then(() => {
+			closeButtonElement?.focus();
+		});
+	} else if (previousActiveElement) {
+		previousActiveElement.focus();
+		previousActiveElement = null;
 	}
 
 	function handleWindowKeydown(event: KeyboardEvent) {
@@ -29,9 +46,38 @@
 		}
 	}
 
+	function handleDialogKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Tab' || !dialogElement) return;
+
+		const focusableElements = Array.from(
+			dialogElement.querySelectorAll<HTMLElement>(
+				'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+			)
+		).filter((element) => !element.hasAttribute('disabled'));
+
+		if (!focusableElements.length) return;
+
+		const firstElement = focusableElements[0];
+		const lastElement = focusableElements[focusableElements.length - 1];
+
+		if (event.shiftKey && document.activeElement === firstElement) {
+			event.preventDefault();
+			lastElement.focus();
+		} else if (!event.shiftKey && document.activeElement === lastElement) {
+			event.preventDefault();
+			firstElement.focus();
+		}
+	}
+
 	function closeWidget() {
 		isOpen = false;
 	}
+
+	onDestroy(() => {
+		if (typeof document !== 'undefined') {
+			document.body.classList.remove('results-open');
+		}
+	});
 </script>
 
 <svelte:window on:keydown={handleWindowKeydown} />
@@ -45,6 +91,9 @@
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="results-title"
+			tabindex="-1"
+			bind:this={dialogElement}
+			on:keydown={handleDialogKeydown}
 		>
 			<div class="modal-head">
 				<div>
@@ -52,8 +101,14 @@
 					<h2 id="results-title">Your top lipstick matches are ready</h2>
 					<p class="subcopy">These are the three shades most likely to click right away.</p>
 				</div>
-				<button class="close-button" type="button" aria-label="Close results" on:click={closeWidget}>
-					×
+				<button
+					class="close-button"
+					type="button"
+					aria-label="Close results"
+					bind:this={closeButtonElement}
+					on:click={closeWidget}
+				>
+					&times;
 				</button>
 			</div>
 
@@ -135,6 +190,11 @@
 {/if}
 
 <style>
+	:global(body.results-open) {
+		overflow: hidden;
+		touch-action: none;
+	}
+
 	.results-overlay {
 		position: fixed;
 		inset: 0;
@@ -159,6 +219,7 @@
 		border-radius: 24px;
 		box-shadow: 0 28px 60px rgba(74, 27, 46, 0.22);
 		z-index: 30;
+		overscroll-behavior: contain;
 	}
 
 	.modal-head {
@@ -166,6 +227,16 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 1rem;
+		position: sticky;
+		top: -1.2rem;
+		margin: -1.2rem -1.2rem 0;
+		padding: 1.2rem 1.2rem 0.95rem;
+		background: linear-gradient(180deg, rgba(255, 253, 253, 0.98) 0%, rgba(255, 247, 250, 0.95) 100%);
+		backdrop-filter: blur(10px);
+		border-bottom: 1px solid rgba(239, 216, 223, 0.9);
+		border-top-left-radius: 24px;
+		border-top-right-radius: 24px;
+		z-index: 1;
 	}
 
 	.eyebrow {
@@ -185,15 +256,23 @@
 	}
 
 	.close-button {
-		width: 2.25rem;
-		height: 2.25rem;
+		width: 2.75rem;
+		height: 2.75rem;
+		flex: 0 0 auto;
 		border: 1px solid #ecc9d7;
 		border-radius: 999px;
 		background: #fff;
 		color: #874562;
-		font-size: 1.3rem;
+		font-size: 1.5rem;
 		line-height: 1;
 		cursor: pointer;
+	}
+
+	.close-button:focus-visible,
+	.shop-link:focus-visible,
+	.reopen-button:focus-visible {
+		outline: 3px solid rgba(176, 76, 115, 0.3);
+		outline-offset: 2px;
 	}
 
 	h2 {
@@ -245,6 +324,7 @@
 
 	.shade-list-wrap {
 		margin-top: 1rem;
+		padding-bottom: 0.25rem;
 	}
 
 	.shade-list {
@@ -289,6 +369,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
+		min-width: 0;
 	}
 
 	.rank-label {
@@ -305,6 +386,7 @@
 		font-weight: 800;
 		font-size: 1.08rem;
 		text-transform: capitalize;
+		overflow-wrap: anywhere;
 	}
 
 	.shade-reason {
@@ -328,9 +410,11 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		box-sizing: border-box;
 		text-decoration: none;
 		border: none;
 		border-radius: 999px;
+		min-height: 44px;
 		padding: 0.82rem 1.05rem;
 		font-size: 0.9rem;
 		font-weight: 800;
@@ -344,7 +428,7 @@
 	.reopen-button {
 		position: fixed;
 		right: 1rem;
-		bottom: 1rem;
+		bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
 		z-index: 20;
 	}
 
@@ -362,30 +446,58 @@
 
 	@media (max-width: 720px) {
 		.results-modal {
-			border-radius: 14px;
-			padding: 1rem;
+			left: 0.7rem;
+			right: 0.7rem;
 			top: auto;
-			bottom: 0.75rem;
-			transform: translateX(-50%);
-			max-height: calc(100vh - 1.5rem);
+			bottom: 0;
+			width: auto;
+			max-width: none;
+			max-height: min(84vh, calc(100dvh - 0.5rem));
+			transform: none;
+			padding: 1rem 1.15rem calc(1rem + env(safe-area-inset-bottom, 0px));
+			border-radius: 20px 20px 16px 16px;
 		}
 
 		h2 {
 			font-size: 1.35rem;
 		}
 
+		.modal-head {
+			top: -1rem;
+			margin: -1rem -1.15rem 0;
+			padding: 1rem 1.15rem 0.85rem;
+			border-top-left-radius: 20px;
+			border-top-right-radius: 20px;
+		}
+
+		.metric-grid {
+			grid-template-columns: 1fr;
+			gap: 0.65rem;
+		}
+
 		.shade-card {
 			grid-template-columns: 1fr;
+			align-items: stretch;
+		}
+
+		.shade-title-row {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.best-badge {
+			align-self: flex-start;
 		}
 
 		.shop-link {
 			width: 100%;
+			max-width: 100%;
 		}
 
 		.reopen-button {
 			right: 0.75rem;
 			left: 0.75rem;
-			bottom: 0.75rem;
+			bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
 		}
 	}
 </style>
