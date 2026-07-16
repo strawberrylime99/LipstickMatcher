@@ -1,0 +1,67 @@
+name: Content Rejection Memory
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  remember-rejection:
+    if: github.event.pull_request.head.ref == 'automation/content-draft' && github.event.pull_request.merged == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Find generated topic slug
+        id: pr-files
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100
+            });
+
+            const blogFile = files.find((file) =>
+              file.status === 'added' && file.filename.startsWith('src/routes/blog/') && file.filename.endsWith('.md')
+            );
+
+            if (!blogFile) {
+              core.notice('No generated blog file found on the declined automation PR.');
+              core.setOutput('topic_slug', '');
+              return;
+            }
+
+            const slug = blogFile.filename.replace('src/routes/blog/', '').replace(/\.md$/, '');
+            core.setOutput('topic_slug', slug);
+
+      - name: Mark topic as rejected
+        if: steps.pr-files.outputs.topic_slug != ''
+        run: node scripts/generate-content-post.mjs --reject-slug "${{ steps.pr-files.outputs.topic_slug }}"
+
+      - name: Commit rejection memory
+        if: steps.pr-files.outputs.topic_slug != ''
+        run: |
+          if git diff --quiet; then
+            echo "No rejection-memory changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content/automation-topics.json
+          git commit -m "chore(content): remember rejected automation topic"
+          git push origin HEAD:${{ github.event.pull_request.base.ref }}

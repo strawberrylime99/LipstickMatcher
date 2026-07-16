@@ -5,7 +5,9 @@ const ROOT = process.cwd();
 const TOPICS_PATH = path.join(ROOT, 'content', 'automation-topics.json');
 const BLOG_DIR = path.join(ROOT, 'src', 'routes', 'blog');
 const SHADE_RULES_PATH = path.join(ROOT, 'src', 'lib', 'recommendations', 'shadeRules.ts');
-const DRY_RUN = process.argv.includes('--dry-run');
+const CLI_ARGS = process.argv.slice(2);
+const DRY_RUN = CLI_ARGS.includes('--dry-run');
+const REJECT_SLUG = readArgValue('--reject-slug');
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -15,8 +17,19 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
+function readArgValue(flag) {
+  const index = CLI_ARGS.indexOf(flag);
+  if (index === -1) return null;
+  return CLI_ARGS[index + 1] ?? null;
+}
+
 function toIsoDate() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function normalizeSlugList(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item) => typeof item === 'string' && item.trim()).map((item) => item.trim()))];
 }
 
 function dateStamp() {
@@ -473,6 +486,38 @@ ${relatedLinks}
 `;
 }
 
+function findNextTopic(topics, cursor, rejectedSlugs) {
+  if (topics.length === 0) {
+    return null;
+  }
+
+  for (let offset = 0; offset < topics.length; offset += 1) {
+    const index = (cursor + offset) % topics.length;
+    const topic = topics[index];
+    if (!rejectedSlugs.has(topic.slug)) {
+      return { index, topic };
+    }
+  }
+
+  return null;
+}
+
+function markTopicRejected(config, slug) {
+  const topics = Array.isArray(config.topics) ? config.topics : [];
+  const matchedTopic = topics.find((topic) => slug === topic.slug || slug.startsWith(`${topic.slug}-`));
+  if (!matchedTopic) {
+    throw new Error(`Cannot reject unknown topic slug: ${slug}`);
+  }
+
+  const rejectedSlugs = normalizeSlugList(config.rejectedSlugs);
+  if (!rejectedSlugs.includes(matchedTopic.slug)) {
+    rejectedSlugs.push(matchedTopic.slug);
+  }
+
+  config.rejectedSlugs = rejectedSlugs;
+  writeJson(TOPICS_PATH, config);
+}
+
 function main() {
   if (!fs.existsSync(TOPICS_PATH)) {
     throw new Error(`Missing topic file: ${TOPICS_PATH}`);
@@ -488,10 +533,22 @@ function main() {
   if (!Array.isArray(config.topics) || config.topics.length === 0) {
     throw new Error('automation-topics.json must include a non-empty topics array.');
   }
+  config.rejectedSlugs = normalizeSlugList(config.rejectedSlugs);
+
+  if (REJECT_SLUG) {
+    markTopicRejected(config, REJECT_SLUG);
+    console.log(`Marked topic as rejected: ${REJECT_SLUG}`);
+    console.log(`Rejected topics tracked: ${config.rejectedSlugs.length}`);
+    return;
+  }
 
   const cursor = Number.isInteger(config.cursor) ? config.cursor : 0;
-  const topicIndex = cursor % config.topics.length;
-  const topic = config.topics[topicIndex];
+  const nextTopic = findNextTopic(config.topics, cursor, new Set(config.rejectedSlugs));
+  if (!nextTopic) {
+    throw new Error('All configured topics are currently rejected. Add more topics or remove one from rejectedSlugs.');
+  }
+
+  const { index: topicIndex, topic } = nextTopic;
   const relatedTopics = getRelatedLinks(config.topics, topic, topicIndex);
   const dateIso = toIsoDate();
   const slug = buildUniqueSlug(topic.slug);
@@ -500,7 +557,9 @@ function main() {
   const postBody = buildPost(topic, dateIso, logicSnapshot, relatedTopics, topicIndex);
 
   if (DRY_RUN) {
-    console.log(`[dry-run] Next topic index: ${cursor}`);
+    console.log(`[dry-run] Cursor start index: ${cursor}`);
+    console.log(`[dry-run] Selected topic index: ${topicIndex}`);
+    console.log(`[dry-run] Selected topic slug: ${topic.slug}`);
     console.log(`[dry-run] New slug: ${slug}`);
     console.log(`[dry-run] Would write: ${postPath}`);
     console.log(`[dry-run] Logic source: ${logicSnapshot.sourcePath}`);
@@ -509,7 +568,7 @@ function main() {
   }
 
   fs.writeFileSync(postPath, postBody, 'utf8');
-  config.cursor = cursor + 1;
+  config.cursor = topicIndex + 1;
   writeJson(TOPICS_PATH, config);
 
   console.log(`Created post: src/routes/blog/${slug}.md`);
